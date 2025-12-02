@@ -24,6 +24,7 @@ local.properties
 *.log
 *.tmp
 *.swp
+*.hprof
 
 # OS junk
 Thumbs.db
