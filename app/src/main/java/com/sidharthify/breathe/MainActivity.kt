@@ -368,7 +368,7 @@ fun MainDashboardDetail(zone: AqiResponse) {
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            text = "AQI US",
+                            text = "NAQI",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
