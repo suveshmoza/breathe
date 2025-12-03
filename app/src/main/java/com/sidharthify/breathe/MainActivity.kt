@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,14 +39,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// --- Navigation Enum ---
 enum class AppScreen(val label: String, val iconFilled: ImageVector, val iconOutlined: ImageVector) {
     Home("Home", Icons.Filled.Home, Icons.Outlined.Home),
     Explore("Explore", Icons.Filled.Search, Icons.Outlined.Search),
     Settings("Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
-// --- ViewModel ---
 class BreatheViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
     val uiState = _uiState.asStateFlow()
@@ -54,9 +54,7 @@ class BreatheViewModel : ViewModel() {
 
     fun init(context: Context) {
         viewModelScope.launch {
-            // Start Loading, clear previous errors
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
             try {
                 val zonesResp = RetrofitClient.api.getZones()
                 val zonesList = zonesResp.zones
@@ -69,8 +67,7 @@ class BreatheViewModel : ViewModel() {
                 for (id in pinnedSet) {
                     try {
                         pinnedAqiList.add(RetrofitClient.api.getZoneAqi(id))
-                    } catch (e: Exception) {
-                    }
+                    } catch (e: Exception) { }
                 }
 
                 _uiState.value = AppState(
@@ -101,27 +98,30 @@ class BreatheViewModel : ViewModel() {
         } else {
             currentSet.add(zoneId)
         }
-
         context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
             .edit().putStringSet("pinned_ids", currentSet).apply()
-
         init(context)
     }
 }
 
-// --- Main Activity ---
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(
-                colorScheme = dynamicDarkColorScheme(LocalContext.current)
-            ) {
+            var isDarkTheme by remember { mutableStateOf(true) }
+            val context = LocalContext.current
+            
+            val colorScheme = if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+
+            MaterialTheme(colorScheme = colorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    BreatheApp()
+                    BreatheApp(
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = { isDarkTheme = !isDarkTheme }
+                    )
                 }
             }
         }
@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BreatheApp(viewModel: BreatheViewModel = viewModel()) {
+fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: BreatheViewModel = viewModel()) {
     val context = LocalContext.current
     var currentScreen by remember { mutableStateOf(AppScreen.Home) }
     val state by viewModel.uiState.collectAsState()
@@ -141,18 +141,34 @@ fun BreatheApp(viewModel: BreatheViewModel = viewModel()) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 0.dp
+            ) {
                 AppScreen.values().forEach { screen ->
+                    val isSelected = currentScreen == screen
                     NavigationBarItem(
                         icon = { 
                             Icon(
-                                if (currentScreen == screen) screen.iconFilled else screen.iconOutlined, 
+                                if (isSelected) screen.iconFilled else screen.iconOutlined, 
                                 contentDescription = screen.label
                             ) 
                         },
-                        label = { Text(screen.label) },
-                        selected = currentScreen == screen,
-                        onClick = { currentScreen = screen }
+                        label = { 
+                            Text(
+                                screen.label, 
+                                fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal
+                            ) 
+                        },
+                        selected = isSelected,
+                        onClick = { currentScreen = screen },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
@@ -177,7 +193,7 @@ fun BreatheApp(viewModel: BreatheViewModel = viewModel()) {
                     onPinToggle = { id -> viewModel.togglePin(context, id) },
                     onRetry = { viewModel.init(context) }
                 )
-                AppScreen.Settings -> SettingsScreen()
+                AppScreen.Settings -> SettingsScreen(isDarkTheme, onThemeToggle)
             }
         }
     }
@@ -215,18 +231,18 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp)
     ) {
-        // --- 1. Header & Pins ---
         Text(
             "Pinned Locations",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp),
-            color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 24.dp, top = 32.dp, bottom = 16.dp),
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         if (pinnedZones.isNotEmpty()) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(pinnedZones) { zone ->
                     PinnedMiniCard(
@@ -242,9 +258,8 @@ fun HomeScreen(
             EmptyStateCard(onGoToExplore)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // --- 2. Main Dashboard Detail ---
         if (selectedZone != null) {
             MainDashboardDetail(selectedZone!!)
         }
@@ -254,28 +269,34 @@ fun HomeScreen(
 @Composable
 fun PinnedMiniCard(zone: AqiResponse, isSelected: Boolean, onClick: () -> Unit) {
     val aqiColor = getAqiColor(zone.usAqi)
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+    
     Card(
         onClick = onClick,
-        modifier = Modifier.width(150.dp).height(110.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
-        ),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+        modifier = Modifier.width(160.dp).height(120.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if(isSelected) 4.dp else 0.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = zone.zoneName,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.SemiBold
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(aqiColor))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "${zone.usAqi}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "${zone.usAqi}", 
+                    style = MaterialTheme.typography.headlineMedium, 
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -284,30 +305,71 @@ fun PinnedMiniCard(zone: AqiResponse, isSelected: Boolean, onClick: () -> Unit) 
 @Composable
 fun MainDashboardDetail(zone: AqiResponse) {
     val aqiColor = getAqiColor(zone.usAqi)
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text("Current Air Quality", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
-        Text(zone.zoneName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(Brush.verticalGradient(colors = listOf(aqiColor.copy(alpha = 0.4f), aqiColor.copy(alpha = 0.1f)))),
-            contentAlignment = Alignment.Center
+    val aqiBgColor = aqiColor.copy(alpha = 0.15f)
+
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.LocationOn, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Now Viewing", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            zone.zoneName, 
+            style = MaterialTheme.typography.displaySmall, 
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            lineHeight = 40.sp
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Card(
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = aqiBgColor),
+            modifier = Modifier.fillMaxWidth().height(260.dp)
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "${zone.usAqi}", style = MaterialTheme.typography.displayLarge.copy(fontSize = 90.sp), fontWeight = FontWeight.ExtraBold, color = aqiColor)
-                Surface(color = aqiColor.copy(alpha = 0.2f), shape = RoundedCornerShape(16.dp)) {
-                    Text(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), text = "AQI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "${zone.usAqi}",
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 110.sp),
+                        fontWeight = FontWeight.Black,
+                        color = aqiColor
+                    )
+                    Surface(
+                        color = aqiColor,
+                        shape = RoundedCornerShape(100),
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            text = "AQI US",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Primary: ${zone.mainPollutant.uppercase()}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Primary: ${zone.mainPollutant.uppercase()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Pollutants", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Pollutants", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
+        
         val pollutants = zone.concentrations ?: emptyMap()
         if (pollutants.isEmpty()) Text("No detailed data.") else FlowRowGrid(pollutants)
     }
@@ -331,31 +393,34 @@ fun ExploreScreen(
         it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true)
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Search Bar (Always Visible)
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = query,
             onValueChange = onSearchChange,
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Search J&K...") },
             leadingIcon = { Icon(Icons.Default.Search, null) },
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             )
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (isLoading && zones.isEmpty()) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else if (error != null && zones.isEmpty()) {
             ErrorCard(msg = error, onRetry = onRetry)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
                 if (filteredZones.isEmpty()) {
                     item { Text("No zones found", modifier = Modifier.padding(8.dp)) }
                 }
@@ -374,14 +439,22 @@ fun ExploreScreen(
 @Composable
 fun ZoneListItem(zone: Zone, isPinned: Boolean, onPinClick: () -> Unit) {
     Card(
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPinned) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(zone.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(zone.provider ?: "Unknown", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    zone.provider ?: "Unknown", 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             IconButton(onClick = onPinClick) {
                 Icon(
@@ -398,51 +471,96 @@ fun ZoneListItem(zone: Zone, isPinned: Boolean, onPinClick: () -> Unit) {
 // SECTION 3: SETTINGS
 // ----------------------------------------------------------------
 @Composable
-fun SettingsScreen() {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+fun SettingsScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
+
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        Text("Settings", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(32.dp))
-        SettingsItem("App Theme", "System Default (Material You)")
+        
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Dark Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Toggle app appearance", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = isDarkTheme, onCheckedChange = { onThemeToggle() })
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
         SettingsItem("Data Standards", "Indian National Air Quality Index (NAQI)")
         SettingsItem("Sources", "CPCB (Govt. of India) & OpenWeather")
+        
+        SettingsItem(
+            title = "Breathe OSS",
+            subtitle = "View Source on GitHub",
+            onClick = { uriHandler.openUri("https://github.com/breathe-OSS") }
+        )
+        
         Spacer(modifier = Modifier.weight(1f))
+        
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            shape = RoundedCornerShape(20.dp)
         ) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Info, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("Built with Kotlin & FastAPI.\nData may be delayed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Code, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Developers", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "• sidharthify (GitHub)",
+                    modifier = Modifier.clickable { uriHandler.openUri("https://github.com/sidharthify") }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "• Flashwreck (GitHub)",
+                    modifier = Modifier.clickable { uriHandler.openUri("https://github.com/Flashwreck") }
+                )
             }
         }
     }
 }
 
 @Composable
-fun SettingsItem(title: String, subtitle: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
-        Column {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+fun SettingsItem(title: String, subtitle: String, onClick: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if(onClick != null) {
+            Icon(Icons.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 }
 
-// --- Utils ---
 @Composable
 fun ErrorCard(msg: String, onRetry: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-        modifier = Modifier.fillMaxWidth().padding(16.dp)
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Connection Error", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
-            Text(msg, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp))
             Spacer(modifier = Modifier.height(16.dp))
+            Text("Connection Error", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+            Text(msg, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = onRetry) { Text("Retry") }
         }
     }
@@ -454,10 +572,13 @@ fun EmptyStateCard(onGoToExplore: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(Icons.Filled.PushPin, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.surfaceVariant)
+        Icon(Icons.Filled.PushPin, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.surfaceVariant)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("No Pinned Zones", style = MaterialTheme.typography.titleMedium)
-        Button(onClick = onGoToExplore, modifier = Modifier.padding(top = 16.dp)) { Text("Explore") }
+        Text("No Pinned Zones", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Pin locations to see them here", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(24.dp))
+        FilledTonalButton(onClick = onGoToExplore) { Text("Go to Explore") }
     }
 }
 
@@ -483,14 +604,18 @@ fun FlowRowGrid(pollutants: Map<String, Double>) {
 
 @Composable
 fun PollutantCard(modifier: Modifier, name: String, value: String, unit: String) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(4.dp))
+    Card(
+        modifier = modifier, 
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(unit, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
+                Text(unit, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -510,11 +635,11 @@ fun formatPollutantName(key: String): String {
 
 fun getAqiColor(aqi: Int): Color {
     return when (aqi) {
-        in 0..50 -> Color(0xFF00B050)
-        in 51..100 -> Color(0xFF92D050)
-        in 101..200 -> Color(0xFFFFFF00)
-        in 201..300 -> Color(0xFFFF9900)
-        in 301..400 -> Color(0xFFFF0000)
-        else -> Color(0xFFC00000)
+        in 0..50 -> Color(0xFF00E400)
+        in 51..100 -> Color(0xFFFFFF00)
+        in 101..150 -> Color(0xFFFF7E00)
+        in 151..200 -> Color(0xFFFF0000)
+        in 201..300 -> Color(0xFF8F3F97)
+        else -> Color(0xFF7E0023)
     }
 }
