@@ -14,6 +14,8 @@
 
 **Breathe** is a modern, MD3 Android application designed to monitor real-time Air Quality Index (AQI) levels across Jammu & Kashmir. Built with **Kotlin** and **Jetpack Compose**, it provides a clean, fluid interface to track pollution levels using the Indian National Air Quality Index (NAQI) standards.
 
+- Check the [**breathe api**](https://github.com/breathe-OSS/api?tab=readme-ov-file#how-the-aqi-is-calculated) repo to know how the AQI is calculated.
+
 ## Features
 
 * **Material Design 3 Expressive**
@@ -65,5 +67,3 @@ This project is fully Free & Open Source Software (FOSS).
 ## Built by:
 1. [sidharthify](https://github.com/sidharthify) (Lead Dev)
 2. [Flashwreck](https://github.com/Flashwreck) (Devops maintainer and designer)
-
-Please check the [breathe api](https://github.com/breathe-OSS/api) repo for more information.
