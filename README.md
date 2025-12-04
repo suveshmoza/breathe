@@ -3,6 +3,10 @@
 > *"Breathe, breathe in the air. Don't be afraid to care."* - **Pink Floyd**, *The Dark Side of the Moon*
 
 <p align="center">
+  <img src="assets/logo.png" alt="App Icon" width="128"/>
+</p>
+
+<p align="center">
   <img src="assets/screenshot-1.png" alt="Screenshot 1" width="200" style="border-radius:26px;"/>
   <img src="assets/screenshot-2.png" alt="Screenshot 2" width="200" style="border-radius:26px;"/>
   <img src="assets/screenshot-3.png" alt="Screenshot 3" width="200" style="border-radius:26px;"/>
