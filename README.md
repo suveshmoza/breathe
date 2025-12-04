@@ -54,15 +54,17 @@
   - Sync Gradle files.
   - Select your device and click Run.
 
+## (WIP) Data Providers:
+1. **CPCB (Central Pollution Control Board):** For official government data.
+2. **Open-Meteo:** For weather and air quality data integration.
+
+We are looking to setup certain custom physical sensors in some areas of Jammu, anyone willing to contribute can send a mail to wednisegit@gmail.com
+
 ## Credits & Developers
 This project is fully Free & Open Source Software (FOSS).
 
 ## Built by:
 1. [sidharthify](https://github.com/sidharthify) (Lead Dev)
 2. [Flashwreck](https://github.com/Flashwreck) (Devops maintainer and designer)
-
-## Data Providers:
-1. **CPCB (Central Pollution Control Board):** For official government data.
-2. **Open-Meteo:** For weather and air quality data integration.
 
 Please check the [breathe api](https://github.com/breathe-OSS/api) repo for more information.
