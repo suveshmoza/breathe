@@ -27,6 +27,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,6 +61,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.CustomZoomButtonsController
 
 enum class AppScreen(val label: String, val iconFilled: ImageVector, val iconOutlined: ImageVector) {
     Home("Home", Icons.Filled.Home, Icons.Outlined.Home),
@@ -272,6 +275,8 @@ fun MapScreen(
     
     var selectedZoneData by remember { mutableStateOf<AqiResponse?>(null) }
 
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+
     LaunchedEffect(Unit) {
         Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
     }
@@ -285,18 +290,22 @@ fun MapScreen(
                         setTileSource(TileSourceFactory.MAPNIK)
                         setMultiTouchControls(true)
 
+                        // Hide the default zoom buttons //
+                        zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+
                         val jkRegion = BoundingBox(37.5, 81.0, 32.0, 72.0)
-
                         setScrollableAreaLimitDouble(jkRegion)
-
                         minZoomLevel = 7.0  
                         maxZoomLevel = 20.0
-
+                        
                         controller.setZoom(9.0)
                         controller.setCenter(startPoint)
+                        
+                        mapViewRef = this
                     }
                 },
                 update = { mapView ->
+                    
                     val tilesOverlay = mapView.overlayManager.tilesOverlay
                     if (isDarkTheme) {
                         val inverseMatrix = ColorMatrix(
@@ -342,10 +351,34 @@ fun MapScreen(
                     mapView.invalidate()
                 }
             )
+            
+            //  Custom MD3 Zoom Controls //
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SmallFloatingActionButton(
+                    onClick = { mapViewRef?.controller?.zoomIn() },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Zoom In")
+                }
+
+                SmallFloatingActionButton(
+                    onClick = { mapViewRef?.controller?.zoomOut() },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out")
+                }
+            }
         }
 
         if (selectedZoneData != null) {
-            ModalBottomSheet(
+             ModalBottomSheet(
                 onDismissRequest = { selectedZoneData = null },
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
