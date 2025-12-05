@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.LocationOn
@@ -87,11 +88,11 @@ fun PinnedMiniCard(zone: AqiResponse, isSelected: Boolean, onClick: () -> Unit) 
 }
 
 @Composable
-fun MainDashboardDetail(zone: AqiResponse, provider: String?) {
+fun MainDashboardDetail(zone: AqiResponse, provider: String?, isDarkTheme: Boolean) {
     val aqiColor by animateColorAsState(
         targetValue = getAqiColor(zone.nAqi),
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-        label = "DashboardColor"
+        label = "DashboardColor",
     )
 
     val animatedAqi by animateIntAsState(
@@ -132,8 +133,14 @@ fun MainDashboardDetail(zone: AqiResponse, provider: String?) {
             }
 
             if (isOpenMeteo) {
+                val logo = if (isDarkTheme) {
+                    R.drawable.open_meteo_logo
+                } else {
+                    R.drawable.open_meteo_logo_light
+                }
+
                 Image(
-                    painter = painterResource(id = R.drawable.open_meteo_logo),
+                    painter = painterResource(id = logo),
                     contentDescription = "Open-Meteo Data",
                     modifier = Modifier
                         .height(24.dp)

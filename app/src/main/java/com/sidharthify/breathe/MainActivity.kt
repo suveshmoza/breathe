@@ -122,6 +122,7 @@ fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: Breat
                         error = state.error,
                         pinnedZones = state.pinnedZones,
                         zones = state.zones,
+                        isDarkTheme = isDarkTheme,
                         onGoToExplore = { currentScreen = AppScreen.Explore },
                         onRetry = { viewModel.init(context) }
                     )
@@ -134,6 +135,7 @@ fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: Breat
                     )
                     AppScreen.Explore -> ExploreScreen(
                         isLoading = state.isLoading,
+                        isDarkTheme = isDarkTheme,
                         error = state.error,
                         zones = state.zones,
                         pinnedIds = state.pinnedIds,

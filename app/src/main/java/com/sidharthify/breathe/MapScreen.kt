@@ -151,7 +151,7 @@ fun MapScreen(
                         .padding(bottom = 48.dp)
                 ) {
                     val provider = zones.find { it.id == selectedZoneData!!.zoneId }?.provider
-                    MainDashboardDetail(selectedZoneData!!, provider)
+                    MainDashboardDetail(selectedZoneData!!, provider, isDarkTheme)
 
                     val isPinned = pinnedIds.contains(selectedZoneData!!.zoneId)
                     Box(Modifier.padding(horizontal = 24.dp)) {

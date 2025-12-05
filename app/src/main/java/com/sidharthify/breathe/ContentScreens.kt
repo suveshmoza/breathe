@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun HomeScreen(
     isLoading: Boolean,
+    isDarkTheme: Boolean,
     error: String?,
     pinnedZones: List<AqiResponse>,
     zones: List<Zone>,
@@ -86,7 +87,7 @@ fun HomeScreen(
 
         if (selectedZone != null) {
             val provider = zones.find { it.id == selectedZone!!.zoneId }?.provider
-            MainDashboardDetail(selectedZone!!, provider)
+            MainDashboardDetail(selectedZone!!, provider, isDarkTheme)
         }
     }
 }
@@ -95,6 +96,7 @@ fun HomeScreen(
 @Composable
 fun ExploreScreen(
     isLoading: Boolean,
+    isDarkTheme: Boolean,
     error: String?,
     zones: List<Zone>,
     pinnedIds: Set<String>,
