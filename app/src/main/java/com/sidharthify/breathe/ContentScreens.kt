@@ -166,7 +166,7 @@ fun SettingsScreen(
 
     val currentVersion = try {
         // com.sidharthify.breathe.BuildConfig.VERSION_NAME
-        "v2.1"
+        "v2.2"
     } catch (e: Exception) {
         "Unknown"
     }
