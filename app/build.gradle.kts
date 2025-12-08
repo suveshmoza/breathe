@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.sidharthify.breathe"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 2
         versionName = "2.3"
 
