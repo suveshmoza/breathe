@@ -75,16 +75,13 @@ class BreatheWidget : GlanceAppWidget() {
         val totalPins = prefs[PREF_TOTAL_PINS] ?: 1
 
         val aqiColor = getAqiColor(aqi)
-        
-        // colors
-        val baseBg = Color(0xFF1E1F24)
-        val baseText = Color.White
-        val baseSecondary = Color(0xFFC4C7D0)
 
-        val bgColor = ColorProvider(baseBg)
-        val textColor = ColorProvider(baseText)
-        val secondaryTextColor = ColorProvider(baseSecondary)
-        val attributionColor = ColorProvider(baseSecondary.copy(alpha = 0.7f))
+        // colors
+        val bgColor = ColorProvider(Color(0xFF1E1F24))
+        val textColor = ColorProvider(Color.White)
+        val secondaryTextColor = ColorProvider(Color(0xFFC4C7D0))
+        val attributionColor = ColorProvider(Color(0xFFC4C7D0).copy(alpha = 0.7f))
+
 
         val isTiny = size.width < 90.dp || size.height < 90.dp
         val isNarrow = size.width < 160.dp

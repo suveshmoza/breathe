@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "com.sidharthify.breathe"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.sidharthify.breathe"
-        minSdk = 30
+        minSdk = 27
         targetSdk = 35
         versionCode = 4
         versionName = "2.3"

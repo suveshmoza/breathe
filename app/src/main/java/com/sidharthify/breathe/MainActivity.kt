@@ -2,6 +2,7 @@ package com.sidharthify.breathe
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -54,7 +55,16 @@ class MainActivity : ComponentActivity() {
                 onDispose { }
             }
 
-            val colorScheme = if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val colorScheme = when {
+                // check if the device is running Android 12 (API 31) or newer
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                    val context = LocalContext.current
+                    if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+                }
+                // fallback for older Android versions
+                isDarkTheme -> androidx.compose.material3.darkColorScheme()
+                else -> androidx.compose.material3.lightColorScheme()
+            }
 
             MaterialTheme(colorScheme = colorScheme) {
                 Surface(
