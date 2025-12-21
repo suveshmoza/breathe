@@ -1,105 +1,92 @@
 package com.sidharthify.breathe
 
 import android.app.Activity
-import android.os.Bundle
+import android.content.Context
 import android.os.Build
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sidharthify.breathe.navigation.AppScreen
-import com.sidharthify.breathe.ui.screens.*
+import com.sidharthify.breathe.ui.screens.ExploreScreen
+import com.sidharthify.breathe.ui.screens.HomeScreen
+import com.sidharthify.breathe.ui.screens.MapScreen
+import com.sidharthify.breathe.ui.screens.SettingsScreen
 import com.sidharthify.breathe.viewmodel.BreatheViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
-
         enableEdgeToEdge()
 
+        val prefs = getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
+
         setContent {
-            var isDarkTheme by remember { mutableStateOf(true) }
-            val context = LocalContext.current
-
-            DisposableEffect(isDarkTheme) {
-                val window = (context as Activity).window
-                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-
-                insetsController.isAppearanceLightStatusBars = !isDarkTheme
-                insetsController.isAppearanceLightNavigationBars = !isDarkTheme
-
-                onDispose { }
+            val systemDark = isSystemInDarkTheme()
+            val isDarkThemeState = remember {
+                val savedValue = if (prefs.contains("is_dark_theme")) {
+                    prefs.getBoolean("is_dark_theme", false)
+                } else {
+                    systemDark
+                }
+                mutableStateOf(savedValue)
             }
 
-            val colorScheme = when {
-                // check if the device is running Android 12 (API 31) or newer
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                    val context = LocalContext.current
-                    if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-                }
-                // fallback for older Android versions
-                isDarkTheme -> androidx.compose.material3.darkColorScheme()
-                else -> androidx.compose.material3.lightColorScheme()
+            val toggleTheme: () -> Unit = {
+                val newValue = !isDarkThemeState.value
+                isDarkThemeState.value = newValue
+                prefs.edit().putBoolean("is_dark_theme", newValue).apply()
             }
 
-            MaterialTheme(colorScheme = colorScheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    BreatheApp(
-                        isDarkTheme = isDarkTheme,
-                        onThemeToggle = { isDarkTheme = !isDarkTheme }
-                    )
-                }
+            // Internal Theme Wrapper
+            BreatheTheme(darkTheme = isDarkThemeState.value) {
+                BreatheApp(
+                    isDarkTheme = isDarkThemeState.value,
+                    onThemeToggle = toggleTheme
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: BreatheViewModel = viewModel()) {
+fun BreatheApp(
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
+    viewModel: BreatheViewModel = viewModel()
+) {
     val context = LocalContext.current
-    var currentScreen by remember { mutableStateOf(AppScreen.Home) }
-    val state by viewModel.uiState.collectAsState()
-
     LaunchedEffect(Unit) {
         viewModel.init(context)
     }
 
+    val uiState by viewModel.uiState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+
+    var currentScreen by remember { mutableStateOf(AppScreen.Home) }
+
     Scaffold(
-        contentWindowInsets = WindowInsets.systemBars,
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp
-            ) {
-                AppScreen.values().forEach { screen ->
+            NavigationBar {
+                AppScreen.entries.forEach { screen ->
                     val isSelected = currentScreen == screen
                     NavigationBarItem(
                         icon = {
@@ -108,27 +95,20 @@ fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: Breat
                                 contentDescription = screen.label
                             )
                         },
-                        label = {
+                        label = { 
                             Text(
                                 screen.label,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
+                            ) 
                         },
                         selected = isSelected,
-                        onClick = { currentScreen = screen },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        onClick = { currentScreen = screen }
                     )
                 }
             }
         }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
             AnimatedContent(
                 targetState = currentScreen,
                 label = "ScreenTransition",
@@ -142,35 +122,71 @@ fun BreatheApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit, viewModel: Breat
             ) { screen ->
                 when (screen) {
                     AppScreen.Home -> HomeScreen(
-                        isLoading = state.isLoading,
-                        error = state.error,
-                        pinnedZones = state.pinnedZones,
-                        zones = state.zones,
+                        isLoading = uiState.isLoading,
                         isDarkTheme = isDarkTheme,
+                        error = uiState.error,
+                        pinnedZones = uiState.pinnedZones,
+                        zones = uiState.zones,
                         onGoToExplore = { currentScreen = AppScreen.Explore },
-                        onRetry = { viewModel.init(context) }
+                        onRetry = { viewModel.refreshData(context) }
                     )
+
                     AppScreen.Map -> MapScreen(
-                        zones = state.zones,
-                        allAqiData = state.allAqiData,
-                        pinnedIds = state.pinnedIds,
+                        zones = uiState.zones,
+                        allAqiData = uiState.allAqiData,
+                        pinnedIds = uiState.pinnedIds,
                         isDarkTheme = isDarkTheme,
                         onPinToggle = { id -> viewModel.togglePin(context, id) }
                     )
+
                     AppScreen.Explore -> ExploreScreen(
-                        isLoading = state.isLoading,
+                        isLoading = uiState.isLoading,
                         isDarkTheme = isDarkTheme,
-                        error = state.error,
-                        zones = state.zones,
-                        pinnedIds = state.pinnedIds,
-                        query = viewModel.searchQuery.collectAsState().value,
+                        error = uiState.error,
+                        zones = uiState.zones,
+                        pinnedIds = uiState.pinnedIds,
+                        query = searchQuery,
                         onSearchChange = viewModel::onSearchQueryChanged,
                         onPinToggle = { id -> viewModel.togglePin(context, id) },
-                        onRetry = { viewModel.init(context) }
+                        onRetry = { viewModel.refreshData(context) }
                     )
-                    AppScreen.Settings -> SettingsScreen(isDarkTheme, onThemeToggle)
+
+                    AppScreen.Settings -> SettingsScreen(
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = onThemeToggle,
+                        viewModel = viewModel
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+fun BreatheTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content
+    )
 }
