@@ -69,50 +69,67 @@ class BreatheViewModel : ViewModel() {
         }
     }
 
-    fun refreshData(context: Context, isAutoRefresh: Boolean = false) {
-        viewModelScope.launch {
-            if (_uiState.value.allAqiData.isEmpty() && !isAutoRefresh) {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+fun refreshData(context: Context, isAutoRefresh: Boolean = false) {
+    viewModelScope.launch {
+        // Show loading state only if we have no data at all
+        if (_uiState.value.allAqiData.isEmpty() && !isAutoRefresh) {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        }
+
+        val prefs = context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
+        val pinnedSet = prefs.getStringSet("pinned_ids", emptySet()) ?: emptySet()
+
+        try {
+            val zonesList = RetrofitClient.api.getZones().zones
+
+            _uiState.value = _uiState.value.copy(zones = zonesList)
+
+            val (pinnedZones, unpinnedZones) = zonesList.partition { it.id in pinnedSet }
+
+            val pinnedJobs = pinnedZones.map { zone ->
+                async(Dispatchers.IO) {
+                    try { RetrofitClient.api.getZoneAqi(zone.id) } catch (e: Exception) { null }
+                }
             }
+            
+            val pinnedResults = pinnedJobs.awaitAll().filterNotNull()
 
-            val prefs = context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
-            val pinnedSet = prefs.getStringSet("pinned_ids", emptySet()) ?: emptySet()
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                allAqiData = pinnedResults, 
+                pinnedZones = pinnedResults,
+                pinnedIds = pinnedSet
+            )
 
-            try {
-                val zonesList = RetrofitClient.api.getZones().zones
-
-                // PARALLEL FETCHING
-                val allJobs = zonesList.map { zone ->
-                    async {
+            if (unpinnedZones.isNotEmpty()) {
+                val unpinnedJobs = unpinnedZones.map { zone ->
+                    async(Dispatchers.IO) {
                         try { RetrofitClient.api.getZoneAqi(zone.id) } catch (e: Exception) { null }
                     }
                 }
 
-                val allResults = allJobs.awaitAll().filterNotNull()
-                val pinnedResults = allResults.filter { it.zoneId in pinnedSet }
+                val unpinnedResults = unpinnedJobs.awaitAll().filterNotNull()
+                val completeList = pinnedResults + unpinnedResults
 
-                _uiState.value = AppState(
-                    isLoading = false,
-                    error = if (zonesList.isEmpty()) "Could not connect to server." else null,
-                    zones = zonesList,
-                    allAqiData = allResults,
-                    pinnedZones = pinnedResults,
-                    pinnedIds = pinnedSet
+                _uiState.value = _uiState.value.copy(
+                    allAqiData = completeList
                 )
 
-                // SAVE TO CACHE
-                saveToCache(context, zonesList, allResults)
+                saveToCache(context, zonesList, completeList)
+            } else {
+                saveToCache(context, zonesList, pinnedResults)
+            }
 
-            } catch (e: Exception) {
-                if (!isAutoRefresh) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "Error: ${e.localizedMessage}"
-                    )
-                }
+        } catch (e: Exception) {
+            if (!isAutoRefresh) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Error: ${e.localizedMessage}"
+                )
             }
         }
     }
+}
 
     private fun saveToCache(context: Context, zones: List<Zone>, aqiData: List<AqiResponse>) {
         viewModelScope.launch(Dispatchers.IO) {
