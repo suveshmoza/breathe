@@ -75,7 +75,7 @@ class BreatheWidgetWorker(
             val response = RetrofitClient.api.getZoneAqi(currentZoneId)
             val concentrations = response.concentrations ?: emptyMap()
             
-            val providerName = if(currentZoneId.contains("srinagar", true)) "OpenAQ" else "OpenMeteo"
+            val providerName = if(currentZoneId.contains("srinagar", true)) "AirGradient" else "OpenMeteo"
 
             updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply {

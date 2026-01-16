@@ -48,16 +48,16 @@ fun SettingsScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Jammu & Kashmir regions (excl. Srinagar)",
+                            text = "Jammu & Kashmir regions (excl. Srinagar and Jammu)",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Air quality and weather data sourced from Open-Meteo.",
+                            text = "Air quality pollutants data sourced from Open-Meteo.",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "https://open-meteo.com/",
+                            text = "open-meteo.com",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { uriHandler.openUri("https://open-meteo.com/") }
@@ -68,26 +68,26 @@ fun SettingsScreen(
 
                     Column {
                         Text(
-                            text = "Srinagar region",
+                            text = "Srinagar and Jammu",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Air quality data sourced from OpenAQ, using measurements published by the Central Pollution Control Board (CPCB).",
+                            text = "PM10 and PM2.5 sourced from AirGradient ground sensor, and others from Open-Meteo",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text(
-                                text = "cpcb.gov.in/",
+                                text = "airgradient.com",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.clickable { uriHandler.openUri("https://cpcb.gov.in/") }
+                                modifier = Modifier.clickable { uriHandler.openUri("https://www.airgradient.com/") }
                             )
                             Text(
-                                text = "openaq.org",
+                                text = "open-meteo.com",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.clickable { uriHandler.openUri("https://openaq.org/") }
+                                modifier = Modifier.clickable { uriHandler.openUri("https://open-meteo.com/") }
                             )
                         }
                     }
@@ -129,7 +129,7 @@ fun SettingsScreen(
 
         SettingsItem(
             title = "Data Sources", 
-            subtitle = "OpenMeteo & OpenAQ",
+            subtitle = "OpenMeteo & AirGradient ground sensors",
             onClick = { showDataSourceDialog = true }
         )
 

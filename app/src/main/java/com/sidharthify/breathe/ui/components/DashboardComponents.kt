@@ -50,8 +50,8 @@ fun MainDashboardDetail(zone: AqiResponse, provider: String?, isDarkTheme: Boole
     val isOpenMeteo = provider?.contains("Open-Meteo", ignoreCase = true) == true ||
             provider?.contains("OpenMeteo", ignoreCase = true) == true
 
-    val isOpenAQ = provider?.contains("Open-AQ", ignoreCase = true) == true ||
-            provider?.contains("OpenAQ", ignoreCase = true) == true
+    val isAirGradient = provider?.contains("AirGradient", ignoreCase = true) == true ||
+            provider?.contains("AirGradient", ignoreCase = true) == true
 
     val uriHandler = LocalUriHandler.current
 
@@ -94,9 +94,9 @@ fun MainDashboardDetail(zone: AqiResponse, provider: String?, isDarkTheme: Boole
                 )
             }
 
-            if (isOpenAQ) {
+            if (isAirGradient) {
                 Image(
-                    painter = painterResource(id = R.drawable.open_aq_logo),
+                    painter = painterResource(id = R.drawable.air_gradient_logo),
                     contentDescription = "Open-AQ Data",
                     modifier = Modifier
                         .height(24.dp)
@@ -104,7 +104,7 @@ fun MainDashboardDetail(zone: AqiResponse, provider: String?, isDarkTheme: Boole
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() }, 
                             indication = null
-                         ) { uriHandler.openUri("https://openaq.org/") },
+                         ) { uriHandler.openUri("https://www.airgradient.com/") },
                     alpha = 0.8f
                 )
             }
