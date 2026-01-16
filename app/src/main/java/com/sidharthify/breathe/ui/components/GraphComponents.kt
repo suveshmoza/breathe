@@ -34,10 +34,48 @@ fun AqiHistoryGraph(history: List<HistoryPoint>, modifier: Modifier = Modifier) 
     val graphColor = MaterialTheme.colorScheme.primary
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val highlightColor = MaterialTheme.colorScheme.onSurface
+    val highlightColorArgb = highlightColor.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val surfaceColorArgb = surfaceColor.toArgb()
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+
+    // Recycle these objects
+    val path = remember { Path() }
+    val fillPath = remember { Path() }
+    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    
+    // Pre-allocate Paints to avoid garbage collection churn during draw
+    val axisTextPaint = remember {
+        Paint().apply {
+            textSize = 30f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.LEFT
+        }
+    }
+    
+    val tooltipTextPaint = remember {
+        Paint().apply {
+            textSize = 32f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.LEFT
+        }
+    }
+    
+    val tooltipBgPaint = remember {
+        Paint().apply {
+            setShadowLayer(12f, 0f, 4f, android.graphics.Color.argb(50, 0, 0, 0))
+        }
+    }
+
+    // Pre-calculate Gradient to avoid recreation
+    val gradientBrush = remember(graphColor) {
+        Brush.verticalGradient(
+            colors = listOf(graphColor.copy(alpha = 0.3f), graphColor.copy(alpha = 0.0f))
+        )
+    }
 
     Box(
         modifier = modifier
@@ -53,7 +91,6 @@ fun AqiHistoryGraph(history: List<HistoryPoint>, modifier: Modifier = Modifier) 
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            val density = LocalDensity.current
             val labelWidth = with(density) { 35.dp.toPx() }
 
             Canvas(
@@ -112,7 +149,8 @@ fun AqiHistoryGraph(history: List<HistoryPoint>, modifier: Modifier = Modifier) 
                 fun getX(index: Int): Float = labelWidth + (index.toFloat() / (history.size - 1)) * width
                 fun getY(aqi: Int): Float = height - ((aqi - minAqi) / range * height)
 
-                val path = Path()
+                path.rewind()
+                fillPath.rewind()
 
                 history.forEachIndexed { i, point ->
                     val x = getX(i)
@@ -123,104 +161,77 @@ fun AqiHistoryGraph(history: List<HistoryPoint>, modifier: Modifier = Modifier) 
                     } else {
                         val prevX = getX(i - 1)
                         val prevY = getY(history[i - 1].aqi)
-
                         val controlX = prevX + (x - prevX) / 2
                         path.cubicTo(controlX, prevY, controlX, y, x, y)
                     }
                 }
 
-                val fillPath = Path()
                 fillPath.addPath(path)
                 fillPath.lineTo(size.width, height)
                 fillPath.lineTo(labelWidth, height)
                 fillPath.close()
 
-                drawPath(
-                    path = fillPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(graphColor.copy(alpha = 0.3f), graphColor.copy(alpha = 0.0f))
-                    )
-                )
-
-                drawPath(
-                    path = path,
-                    color = graphColor,
-                    style = Stroke(width = 3.dp.toPx())
-                )
+                drawPath(path = fillPath, brush = gradientBrush)
+                drawPath(path = path, color = graphColor, style = Stroke(width = 3.dp.toPx()))
 
                 drawIntoCanvas { canvas ->
                     val nativeCanvas = canvas.nativeCanvas
+                    
+                    // Update paint color locally
+                    axisTextPaint.color = labelColor
+                    axisTextPaint.textAlign = Paint.Align.LEFT
+                    axisTextPaint.typeface = Typeface.DEFAULT_BOLD
 
-                    val textPaint = Paint().apply {
-                        color = labelColor
-                        textSize = 30f
-                        typeface = Typeface.DEFAULT_BOLD
-                    }
-
-                    textPaint.textAlign = Paint.Align.LEFT
-
-                    // Max AQI
-                    nativeCanvas.drawText("${maxAqi.toInt()}", 0f, 30f, textPaint)
-
-                    // Mid AQI
+                    nativeCanvas.drawText("${maxAqi.toInt()}", 0f, 30f, axisTextPaint)
                     val midAqi = (maxAqi + minAqi) / 2
-                    nativeCanvas.drawText("${midAqi.toInt()}", 0f, height / 2 + 10f, textPaint)
-
-                    // Min AQI
-                    nativeCanvas.drawText("${minAqi.toInt()}", 0f, height - 10f, textPaint)
+                    nativeCanvas.drawText("${midAqi.toInt()}", 0f, height / 2 + 10f, axisTextPaint)
+                    nativeCanvas.drawText("${minAqi.toInt()}", 0f, height - 10f, axisTextPaint)
 
                     if (selectedIndex == null) {
-                        textPaint.textAlign = Paint.Align.CENTER
-                        textPaint.typeface = Typeface.DEFAULT
+                        axisTextPaint.textAlign = Paint.Align.CENTER
+                        axisTextPaint.typeface = Typeface.DEFAULT
 
                         val indicesToLabel = listOf(0, history.size / 2, history.size - 1)
                         indicesToLabel.forEach { i ->
                             if (i < history.size) {
                                 val date = Date(history[i].ts * 1000)
-                                val label = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+                                val label = timeFormatter.format(date)
 
-                                textPaint.textAlign = when(i) {
+                                axisTextPaint.textAlign = when(i) {
                                     0 -> Paint.Align.LEFT
                                     history.size - 1 -> Paint.Align.RIGHT
                                     else -> Paint.Align.CENTER
                                 }
-
                                 val xPos = getX(i)
-                                nativeCanvas.drawText(label, xPos, height + 45f, textPaint)
+                                nativeCanvas.drawText(label, xPos, height + 45f, axisTextPaint)
                             }
                         }
                     }
-                }
 
-                selectedIndex?.let { index ->
-                    if (index in history.indices) {
-                        val point = history[index]
-                        val x = getX(index)
-                        val y = getY(point.aqi)
+                    selectedIndex?.let { index ->
+                        if (index in history.indices) {
+                            val point = history[index]
+                            val x = getX(index)
+                            val y = getY(point.aqi)
 
-                        drawLine(
-                            color = highlightColor.copy(alpha = 0.5f),
-                            start = Offset(x, 0f),
-                            end = Offset(x, height),
-                            strokeWidth = 2.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                        )
+                            drawLine(
+                                color = highlightColor.copy(alpha = 0.5f),
+                                start = Offset(x, 0f),
+                                end = Offset(x, height),
+                                strokeWidth = 2.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                            )
 
-                        drawCircle(color = surfaceColor, radius = 6.dp.toPx(), center = Offset(x, y))
-                        drawCircle(color = highlightColor, radius = 4.dp.toPx(), center = Offset(x, y))
+                            drawCircle(color = surfaceColor, radius = 6.dp.toPx(), center = Offset(x, y))
+                            drawCircle(color = highlightColor, radius = 4.dp.toPx(), center = Offset(x, y))
 
-                        drawIntoCanvas { canvas ->
-                            val textPaint = Paint().apply {
-                                color = highlightColor.toArgb()
-                                textSize = 32f
-                                typeface = Typeface.DEFAULT_BOLD
-                            }
+                            tooltipTextPaint.color = highlightColorArgb
                             
                             val date = Date(point.ts * 1000)
-                            val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+                            val timeStr = timeFormatter.format(date)
                             val label = "AQI ${point.aqi} @ $timeStr"
                             
-                            val textWidth = textPaint.measureText(label)
+                            val textWidth = tooltipTextPaint.measureText(label)
                             val padding = 20f
                             val boxWidth = textWidth + (padding * 2)
                             val boxHeight = 70f
@@ -231,18 +242,14 @@ fun AqiHistoryGraph(history: List<HistoryPoint>, modifier: Modifier = Modifier) 
                             
                             val boxY = -60f
 
-                            val paintBackground = Paint().apply {
-                                color = surfaceColor.toArgb()
-                                setShadowLayer(12f, 0f, 4f, android.graphics.Color.argb(50, 0, 0, 0))
-                            }
-
-                            canvas.nativeCanvas.drawRoundRect(
+                            tooltipBgPaint.color = surfaceColorArgb
+                            
+                            nativeCanvas.drawRoundRect(
                                 boxX, boxY, boxX + boxWidth, boxY + boxHeight,
-                                16f, 16f, paintBackground
+                                16f, 16f, tooltipBgPaint
                             )
                             
-                            textPaint.textAlign = Paint.Align.LEFT
-                            canvas.nativeCanvas.drawText(label, boxX + padding, boxY + boxHeight - 22f, textPaint)
+                            nativeCanvas.drawText(label, boxX + padding, boxY + boxHeight - 22f, tooltipTextPaint)
                         }
                     }
                 }
