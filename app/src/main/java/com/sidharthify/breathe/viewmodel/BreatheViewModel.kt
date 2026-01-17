@@ -193,29 +193,4 @@ fun refreshData(context: Context, isAutoRefresh: Boolean = false) {
 
         forceWidgetUpdate(context)
     }
-
-    fun checkForUpdates(context: Context, currentVersion: String) {
-        viewModelScope.launch {
-            try {
-                val latestReleaseUrl = "https://api.github.com/repos/breathe-OSS/breathe/releases/latest"
-                val response = withContext(Dispatchers.IO) { URL(latestReleaseUrl).readText() }
-                val json = JSONObject(response)
-                val latestTag = json.getString("tag_name")
-                val htmlUrl = json.getString("html_url")
-
-                if (latestTag.removePrefix("v") != currentVersion.removePrefix("v")) {
-                    Toast.makeText(context, "Update found: $latestTag", Toast.LENGTH_LONG).show()
-                    val browserIntent = android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(htmlUrl)
-                    )
-                    context.startActivity(browserIntent)
-                } else {
-                    Toast.makeText(context, "You are on the latest version.", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to check for updates.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 }
