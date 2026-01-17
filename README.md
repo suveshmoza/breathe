@@ -19,6 +19,9 @@
 ## Features
 
 * **Material Design 3 Expressive**
+* **AMOLED Dark Theme Support**
+* **Supports devices running Android 8.1 and above**
+* **Fluid Animations and interactive UI**
 * **Real-time Monitoring**
 * **Indian NAQI Standards**
 * **Detailed Breakdown**
@@ -100,34 +103,34 @@ The method that we use to convert the raw data in our API **(please do read the 
 ## Current Data Sources
 ### Open-Meteo
 
-Used for **most regions** in Jammu & Kashmir (excluding Srinagar).
+Used for all pollutant values for **most regions** in Jammu & Kashmir (excluding Srinagar and Jammu).
 Open-Meteo's satellite-based air quality model provides stable and consistent values that generally fall within the expected range of nearby ground measurements.
 
 - Air quality & pollutant data: [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api)
 
 - Weather forecasts & historical data: [Open-Meteo](https://open-meteo.com)
 
+### AirGradient
 
-### OpenAQ (CPCB Mirror)
+Used for the **Srinagar** and **Jammu** region, where the sensors are deployed in real time.
 
-Used for the **Srinagar region**, where government ground sensor data is available.
+- Their website: [AirGradient](https://www.airgradient.com/)
 
-- Data publisher: [Central Pollution Control Board (CPCB)](https://cpcb.gov.in/)
-
-- Data access platform: [OpenAQ](https://openaq.org)
-
-This provides official measured pollutant concentrations where available.
+This provides accurate values of PM10 and PM2.5. Other values are fetched from Open-Meteo (like O₃ and NO₂)
 
 ## Call for Contributors (Hardware)
-The limitations of our current project is that we do not have ground sensors and are mostly relying on satellite data, so the data is **not 100%** accurate.
+The limitations of our current project is that we do not have ground sensors in every region and are mostly relying on satellite data, so the data is **not 100%** accurate.
 
 We are actively working to deploy custom physical sensors to improve data density in Jammu. If you are interested in hosting a sensor node, please contact us at: [wednisegit@gmail.com](mailto:wednisegit@gmail.com)
 
 We have emailed **AQI.in** (an Indian company with local ground community sensors) and **Caeli** (satellite based) for use of their API and free research plans if any.
+
+We have deployed two **AirGradient** sensors in Jammu and Srinagar which provide an accurate measurement of PM10 and PM2.5 values. We are working
+to deploy them in two other regions; Kishtwar and Reasi.
 
 ## Credits & Developers
 This project is fully Free & Open Source Software (FOSS).
 
 ## Built by:
 1. [sidharthify](https://github.com/sidharthify) (Lead Dev)
-2. [Flashwreck](https://github.com/Flashwreck) (Devops maintainer and designer)
+2. [Flashwreck](https://github.com/Flashwreck) (Co-lead and Devops maintainer)
