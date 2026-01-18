@@ -140,14 +140,7 @@ fun MainDashboardDetail(
                     lineHeight = 40.sp
                 )
 
-                if (isOpenMeteo) {
-                    Text(
-                        "Satellite & Model Data",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                } else if (isAirGradient) {
+                if (isAirGradient) {
                      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                         Box(
                             modifier = Modifier
@@ -161,22 +154,41 @@ fun MainDashboardDetail(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                } else if (isOpenMeteo) {
+                    Text(
+                        "Satellite & Model Data",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
 
-            if (isOpenMeteo || isAirGradient) {
-                val logoRes = if (isAirGradient) R.drawable.air_gradient_logo else if (isDarkTheme) R.drawable.open_meteo_logo else R.drawable.open_meteo_logo_light
-                val url = if (isAirGradient) "https://www.airgradient.com/" else "https://open-meteo.com/"
+            Column(horizontalAlignment = Alignment.End) {
+                if (isAirGradient) {
+                    Image(
+                        painter = painterResource(id = R.drawable.air_gradient_logo),
+                        contentDescription = "AirGradient",
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .height(28.dp)
+                            .expressiveClickable { uriHandler.openUri("https://www.airgradient.com/") },
+                        alpha = 0.9f
+                    )
+                }
                 
-                Image(
-                    painter = painterResource(id = logoRes),
-                    contentDescription = "Source",
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .height(28.dp)
-                        .expressiveClickable { uriHandler.openUri(url) },
-                    alpha = 0.9f
-                )
+                if (isOpenMeteo) {
+                    val logoRes = if (isDarkTheme) R.drawable.open_meteo_logo else R.drawable.open_meteo_logo_light
+                    Image(
+                        painter = painterResource(id = logoRes),
+                        contentDescription = "OpenMeteo",
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .height(28.dp)
+                            .expressiveClickable { uriHandler.openUri("https://open-meteo.com/") },
+                        alpha = 0.9f
+                    )
+                }
             }
         }
         
