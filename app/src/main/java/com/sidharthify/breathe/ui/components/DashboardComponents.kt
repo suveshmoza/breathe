@@ -18,7 +18,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
@@ -26,8 +31,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.star
+import androidx.graphics.shapes.toPath
 import com.sidharthify.breathe.R
 import com.sidharthify.breathe.data.AqiResponse
 import com.sidharthify.breathe.expressiveClickable
@@ -37,6 +48,25 @@ import com.sidharthify.breathe.util.formatPollutantName
 import com.sidharthify.breathe.util.calculateCigarettes
 import com.sidharthify.breathe.util.calculateUsAqi 
 import kotlin.math.ceil
+
+class SoftBurstShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val radius = size.minDimension / 2f
+        val polygon = RoundedPolygon.star(
+            numVerticesPerRadius = 12,
+            radius = radius,
+            innerRadius = radius * 0.7f,
+            rounding = CornerRounding(radius * 0.2f),
+            centerX = size.width / 2f,
+            centerY = size.height / 2f
+        )
+        return Outline.Generic(polygon.toPath().asComposePath())
+    }
+}
 
 @Composable
 fun MainDashboardDetail(
@@ -94,6 +124,8 @@ fun MainDashboardDetail(
             provider?.contains("OpenMeteo", ignoreCase = true) == true
     val isAirGradient = provider?.contains("AirGradient", ignoreCase = true) == true ||
             provider?.contains("AirGradient", ignoreCase = true) == true
+
+    val softBurstShape = remember { SoftBurstShape() }
 
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
 
@@ -317,11 +349,19 @@ fun MainDashboardDetail(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium),
+                            .size(56.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.errorContainer, 
+                                shape = softBurstShape
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.SmokingRooms, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                        Icon(
+                            Icons.Filled.SmokingRooms, 
+                            null, 
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
