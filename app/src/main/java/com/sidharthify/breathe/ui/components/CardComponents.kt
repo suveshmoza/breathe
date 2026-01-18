@@ -2,10 +2,10 @@ package com.sidharthify.breathe.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.PushPin
@@ -50,9 +50,23 @@ fun PinnedMiniCard(
         label = "MiniCardColor"
     )
 
-    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.secondaryContainer 
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.onSecondaryContainer 
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    
+    val borderStroke = if (isSelected) {
+        null 
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    }
     // Expressive wrapper
     Box(
         modifier = Modifier
@@ -62,7 +76,11 @@ fun PinnedMiniCard(
     ) {
         Card(
             shape = MaterialTheme.shapes.medium, // 24dp
-            colors = CardDefaults.cardColors(containerColor = containerColor),
+            colors = CardDefaults.cardColors(
+                containerColor = containerColor,
+                contentColor = contentColor
+            ),
+            border = borderStroke,
             modifier = Modifier.fillMaxSize()
         ) {
             Column(
@@ -114,7 +132,6 @@ fun ZoneListItem(zone: Zone, isPinned: Boolean, onPinClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
             // Pin Button with Expressive Click
             Box(
                 modifier = Modifier
@@ -162,7 +179,6 @@ fun EmptyStateCard(onGoToExplore: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
         Text("Pin locations to see them here", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(24.dp))
-        
         // Expressive Button
         Box(modifier = Modifier.expressiveClickable { onGoToExplore() }) {
             Surface(
