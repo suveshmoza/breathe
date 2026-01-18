@@ -88,7 +88,7 @@ class BreatheWidget : GlanceAppWidget() {
         val pm25 = prefs[PREF_PM25] ?: 0.0
         
         // Calculate AQI based on preference
-        val displayAqi = if (isUsAqi && pm25 > 0) calculateUsAqi(pm25) else rawAqi
+        val displayAqi = (if (isUsAqi && pm25 > 0) calculateUsAqi(pm25) else rawAqi).coerceAtMost(500)
         val aqiLabel = if (isUsAqi) "US AQI" else "NAQI"
 
         val rawProvider = prefs[PREF_PROVIDER] ?: ""
