@@ -437,23 +437,37 @@ fun MainDashboardDetail(
             label = "IndicatorPosition",
         )
         
-        val spectrumColors = if (isUsAqi) {
-            listOf(
-                Color(0xFF00E400),
-                Color(0xFFFFFF00),
-                Color(0xFFFF7E00),
-                Color(0xFFFF0000),
-                Color(0xFF8F3F97),
-                Color(0xFF7E0023)
+        val spectrumColorStops = if (isUsAqi) {
+            // US AQI breakpoints
+            arrayOf(
+                0.00f to Color(0xFF00E400),
+                0.10f to Color(0xFF00E400),
+                0.10f to Color(0xFFFFFF00),
+                0.20f to Color(0xFFFFFF00),
+                0.20f to Color(0xFFFF7E00),
+                0.30f to Color(0xFFFF7E00),
+                0.30f to Color(0xFFFF0000),
+                0.40f to Color(0xFFFF0000),
+                0.40f to Color(0xFF8F3F97),
+                0.60f to Color(0xFF8F3F97),
+                0.60f to Color(0xFF7E0023),
+                1.00f to Color(0xFF7E0023)
             )
         } else {
-            listOf(
-                Color(0xFF55A84F),
-                Color(0xFFA3C853),
-                Color(0xFFFDD74B),
-                Color(0xFFFB9A34),
-                Color(0xFFE93F33),
-                Color(0xFFAF2D24)
+            // NAQI breakpoints
+            arrayOf(
+                0.00f to Color(0xFF55A84F),
+                0.10f to Color(0xFF55A84F),
+                0.10f to Color(0xFFA3C853),
+                0.20f to Color(0xFFA3C853),
+                0.20f to Color(0xFFFDD74B),
+                0.40f to Color(0xFFFDD74B),
+                0.40f to Color(0xFFFB9A34),
+                0.60f to Color(0xFFFB9A34),
+                0.60f to Color(0xFFE93F33),
+                0.80f to Color(0xFFE93F33),
+                0.80f to Color(0xFFAF2D24),
+                1.00f to Color(0xFFAF2D24)
             )
         }
         
@@ -507,7 +521,7 @@ fun MainDashboardDetail(
                             .align(Alignment.Center)
                             .clip(RoundedCornerShape(4.dp))
                             .background(
-                                Brush.horizontalGradient(spectrumColors)
+                                Brush.horizontalGradient(colorStops = spectrumColorStops)
                             ),
                     )
                     
@@ -528,7 +542,7 @@ fun MainDashboardDetail(
                                 modifier = Modifier.size(16.dp),
                                 shape = CircleShape,
                                 color = aqiColor,
-                                shadowElevation = 4.dp,
+                                shadowElevation = 2.dp,
                                 border = androidx.compose.foundation.BorderStroke(
                                     2.dp,
                                     MaterialTheme.colorScheme.surface
