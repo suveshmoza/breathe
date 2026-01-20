@@ -29,6 +29,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.sidharthify.breathe.data.AqiResponse
+import com.sidharthify.breathe.data.Zone
+import com.sidharthify.breathe.ui.components.MainDashboardDetail
+import com.sidharthify.breathe.util.IndiaBoundaryOverlay
+import com.sidharthify.breathe.util.calculateUsAqi
+import com.sidharthify.breathe.util.getAqiColor
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -36,12 +42,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import com.sidharthify.breathe.data.AqiResponse
-import com.sidharthify.breathe.data.Zone
-import com.sidharthify.breathe.ui.components.MainDashboardDetail
-import com.sidharthify.breathe.util.getAqiColor
-import com.sidharthify.breathe.util.calculateUsAqi
-import com.sidharthify.breathe.util.IndiaBoundaryOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,11 +51,11 @@ fun MapScreen(
     pinnedIds: Set<String>,
     isDarkTheme: Boolean,
     isUsAqi: Boolean,
-    onPinToggle: (String) -> Unit
+    onPinToggle: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     val bitmapCache = remember { LruCache<String, Bitmap>(50) }
 
     val startPoint = remember { GeoPoint(34.0837, 74.7973) }
@@ -67,10 +67,11 @@ fun MapScreen(
     }
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) mapViewRef?.onResume()
-            if (event == Lifecycle.Event.ON_PAUSE) mapViewRef?.onPause()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) mapViewRef?.onResume()
+                if (event == Lifecycle.Event.ON_PAUSE) mapViewRef?.onPause()
+            }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -99,21 +100,38 @@ fun MapScreen(
                         mapViewRef = this
                     }
                 },
-                update = { _ -> }
+                update = { _ -> },
             )
 
             LaunchedEffect(mapViewRef, isDarkTheme) {
                 mapViewRef?.let { map ->
                     val tilesOverlay = map.overlayManager.tilesOverlay
                     if (isDarkTheme) {
-                        val inverseMatrix = ColorMatrix(
-                            floatArrayOf(
-                                -1.0f, 0.0f, 0.0f, 0.0f, 255f,
-                                0.0f, -1.0f, 0.0f, 0.0f, 255f,
-                                0.0f, 0.0f, -1.0f, 0.0f, 255f,
-                                0.0f, 0.0f, 0.0f, 1.0f, 0.0f
+                        val inverseMatrix =
+                            ColorMatrix(
+                                floatArrayOf(
+                                    -1.0f,
+                                    0.0f,
+                                    0.0f,
+                                    0.0f,
+                                    255f,
+                                    0.0f,
+                                    -1.0f,
+                                    0.0f,
+                                    0.0f,
+                                    255f,
+                                    0.0f,
+                                    0.0f,
+                                    -1.0f,
+                                    0.0f,
+                                    255f,
+                                    0.0f,
+                                    0.0f,
+                                    0.0f,
+                                    1.0f,
+                                    0.0f,
+                                ),
                             )
-                        )
                         tilesOverlay.setColorFilter(ColorMatrixColorFilter(inverseMatrix))
                     } else {
                         tilesOverlay.setColorFilter(null)
@@ -121,7 +139,7 @@ fun MapScreen(
 
                     IndiaBoundaryOverlay.removeBoundaryOverlays(map)
                     IndiaBoundaryOverlay.addBoundaryOverlay(context, map, isDarkTheme)
-                    
+
                     map.invalidate()
                 }
             }
@@ -141,28 +159,31 @@ fun MapScreen(
                         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
 
                         val data = allAqiData.find { it.zoneId == zone.id }
-                        
+
                         var displayAqi = 0
 
                         if (data != null) {
-                            val pm25 = data.concentrations?.get("pm2.5") 
-                                ?: data.concentrations?.get("pm2_5") 
-                                ?: 0.0
-                                
-                            displayAqi = if (isUsAqi) {
-                                data.usAqi ?: if (pm25 > 0) calculateUsAqi(pm25) else 0
-                            } else {
-                                data.nAqi
-                            }
+                            val pm25 =
+                                data.concentrations?.get("pm2.5")
+                                    ?: data.concentrations?.get("pm2_5")
+                                    ?: 0.0
+
+                            displayAqi =
+                                if (isUsAqi) {
+                                    data.usAqi ?: if (pm25 > 0) calculateUsAqi(pm25) else 0
+                                } else {
+                                    data.nAqi
+                                }
                         }
 
                         val aqiText = if (data != null) displayAqi.toString() else ""
-                        
-                        val colorInt = if (data != null) {
-                            getAqiColor(displayAqi, isUsAqi).toArgb()
-                        } else {
-                            android.graphics.Color.GRAY
-                        }
+
+                        val colorInt =
+                            if (data != null) {
+                                getAqiColor(displayAqi, isUsAqi).toArgb()
+                            } else {
+                                android.graphics.Color.GRAY
+                            }
 
                         val cacheKey = "$aqiText-$colorInt"
                         var bitmap = bitmapCache.get(cacheKey)
@@ -187,15 +208,16 @@ fun MapScreen(
             }
 
             Column(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SmallFloatingActionButton(
                     onClick = { mapViewRef?.controller?.zoomIn() },
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Zoom In")
                 }
@@ -203,7 +225,7 @@ fun MapScreen(
                 SmallFloatingActionButton(
                     onClick = { mapViewRef?.controller?.zoomOut() },
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 ) {
                     Icon(Icons.Default.Remove, contentDescription = "Zoom Out")
                 }
@@ -213,29 +235,30 @@ fun MapScreen(
         if (selectedZoneData != null) {
             ModalBottomSheet(
                 onDismissRequest = { selectedZoneData = null },
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(bottom = 48.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 48.dp),
                 ) {
                     val provider = zones.find { it.id == selectedZoneData!!.zoneId }?.provider
-                    
+
                     // Pass isUsAqi here too
                     MainDashboardDetail(
-                        zone = selectedZoneData!!, 
-                        provider = provider, 
+                        zone = selectedZoneData!!,
+                        provider = provider,
                         isDarkTheme = isDarkTheme,
-                        isUsAqi = isUsAqi
+                        isUsAqi = isUsAqi,
                     )
 
                     val isPinned = pinnedIds.contains(selectedZoneData!!.zoneId)
                     Box(Modifier.padding(horizontal = 24.dp)) {
                         OutlinedButton(
                             onClick = { onPinToggle(selectedZoneData!!.zoneId) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin, null)
                             Spacer(Modifier.width(8.dp))
@@ -248,7 +271,11 @@ fun MapScreen(
     }
 }
 
-fun createMarkerBitmap(context: Context, text: String, color: Int): Bitmap {
+fun createMarkerBitmap(
+    context: Context,
+    text: String,
+    color: Int,
+): Bitmap {
     val density = context.resources.displayMetrics.density
     val sizePx = (40 * density).toInt()
     val textSizePx = 14f * density
@@ -256,22 +283,24 @@ fun createMarkerBitmap(context: Context, text: String, color: Int): Bitmap {
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val paint = Paint().apply {
-        this.color = color
-        isAntiAlias = true
-        style = Paint.Style.FILL
-    }
+    val paint =
+        Paint().apply {
+            this.color = color
+            isAntiAlias = true
+            style = Paint.Style.FILL
+        }
     canvas.drawCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, paint)
 
     if (text.isNotEmpty()) {
-        val textPaint = Paint().apply {
-            this.color = Color.BLACK
-            textSize = textSizePx
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(1.5f, 0f, 0f, Color.DKGRAY)
-        }
+        val textPaint =
+            Paint().apply {
+                this.color = Color.BLACK
+                textSize = textSizePx
+                isAntiAlias = true
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                setShadowLayer(1.5f, 0f, 0f, Color.DKGRAY)
+            }
 
         val xPos = sizePx / 2f
         val yPos = (sizePx / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2)

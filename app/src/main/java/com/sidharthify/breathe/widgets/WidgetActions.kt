@@ -10,18 +10,30 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 
 class NextLocationAction : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters,
+    ) {
         cycleLocation(context, glanceId, 1)
     }
 }
 
 class PrevLocationAction : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters,
+    ) {
         cycleLocation(context, glanceId, -1)
     }
 }
 
-private suspend fun cycleLocation(context: Context, glanceId: GlanceId, direction: Int) {
+private suspend fun cycleLocation(
+    context: Context,
+    glanceId: GlanceId,
+    direction: Int,
+) {
     val appPrefs = context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
     val pinnedIds = appPrefs.getStringSet("pinned_ids", emptySet()) ?: emptySet()
     val size = pinnedIds.size
@@ -32,7 +44,7 @@ private suspend fun cycleLocation(context: Context, glanceId: GlanceId, directio
         val currentIndex = prefs[BreatheWidgetWorker.PREF_CURRENT_INDEX] ?: 0
 
         var newIndex = currentIndex + direction
-        
+
         if (newIndex >= size) newIndex = 0
         if (newIndex < 0) newIndex = size - 1
 
@@ -45,6 +57,6 @@ private suspend fun cycleLocation(context: Context, glanceId: GlanceId, directio
     BreatheWidget().update(context, glanceId)
 
     WorkManager.getInstance(context).enqueue(
-        OneTimeWorkRequest.from(BreatheWidgetWorker::class.java)
+        OneTimeWorkRequest.from(BreatheWidgetWorker::class.java),
     )
 }

@@ -9,7 +9,10 @@ import android.graphics.drawable.Drawable
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
 
-fun createBlobIcon(context: Context, color: Int): Drawable {
+fun createBlobIcon(
+    context: Context,
+    color: Int,
+): Drawable {
     val radius = 32f
     val bitmap = Bitmap.createBitmap((radius * 2).toInt(), (radius * 2).toInt(), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
@@ -21,8 +24,8 @@ fun createBlobIcon(context: Context, color: Int): Drawable {
     return BitmapDrawable(context.resources, bitmap)
 }
 
-fun formatPollutantName(key: String): String {
-    return when(key.lowercase()) {
+fun formatPollutantName(key: String): String =
+    when (key.lowercase()) {
         "pm2_5", "pm2.5" -> "PM2.5"
         "pm10" -> "PM10"
         "no2" -> "NO₂"
@@ -31,9 +34,11 @@ fun formatPollutantName(key: String): String {
         "o3" -> "O₃"
         else -> key.uppercase()
     }
-}
 
-fun getAqiColor(aqi: Int, isUsStandard: Boolean = false): Color {
+fun getAqiColor(
+    aqi: Int,
+    isUsStandard: Boolean = false,
+): Color {
     if (isUsStandard) {
         return when (aqi) {
             in 0..50 -> Color(0xFF00E400)
@@ -86,6 +91,10 @@ fun calculateUsAqi(pm25: Double): Int {
     }
 }
 
-private fun linearInterp(c: Double, cLow: Double, cHigh: Double, iLow: Int, iHigh: Int): Int {
-    return (( (iHigh - iLow) / (cHigh - cLow) ) * (c - cLow) + iLow).roundToInt()
-}
+private fun linearInterp(
+    c: Double,
+    cLow: Double,
+    cHigh: Double,
+    iLow: Int,
+    iHigh: Int,
+): Int = (((iHigh - iLow) / (cHigh - cLow)) * (c - cLow) + iLow).roundToInt()

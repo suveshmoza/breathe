@@ -10,14 +10,17 @@ interface BreatheApi {
     suspend fun getZones(): ZonesResponse
 
     @GET("/aqi/zone/{zone_id}")
-    suspend fun getZoneAqi(@Path("zone_id") zoneId: String): AqiResponse
+    suspend fun getZoneAqi(
+        @Path("zone_id") zoneId: String,
+    ): AqiResponse
 }
 
 object RetrofitClient {
     private const val BASE_URL = "https://api.breatheoss.app/"
 
     val api: BreatheApi by lazy {
-        Retrofit.Builder()
+        Retrofit
+            .Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

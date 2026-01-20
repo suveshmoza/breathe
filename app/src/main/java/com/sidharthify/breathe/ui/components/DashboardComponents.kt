@@ -43,49 +43,52 @@ import androidx.graphics.shapes.toPath
 import com.sidharthify.breathe.R
 import com.sidharthify.breathe.data.AqiResponse
 import com.sidharthify.breathe.expressiveClickable
+import com.sidharthify.breathe.util.calculateCigarettes
+import com.sidharthify.breathe.util.calculateUsAqi
+import com.sidharthify.breathe.util.formatPollutantName
 import com.sidharthify.breathe.util.getAqiColor
 import com.sidharthify.breathe.util.getTimeAgo
-import com.sidharthify.breathe.util.formatPollutantName
-import com.sidharthify.breathe.util.calculateCigarettes
-import com.sidharthify.breathe.util.calculateUsAqi 
 import kotlin.math.ceil
 
 class SoftBurstShape : Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
-        density: Density
+        density: Density,
     ): Outline {
         val radius = size.minDimension / 2f
-        val polygon = RoundedPolygon.star(
-            numVerticesPerRadius = 12,
-            radius = radius,
-            innerRadius = radius * 0.7f,
-            rounding = CornerRounding(radius * 0.2f),
-            centerX = size.width / 2f,
-            centerY = size.height / 2f
-        )
+        val polygon =
+            RoundedPolygon.star(
+                numVerticesPerRadius = 12,
+                radius = radius,
+                innerRadius = radius * 0.7f,
+                rounding = CornerRounding(radius * 0.2f),
+                centerX = size.width / 2f,
+                centerY = size.height / 2f,
+            )
         return Outline.Generic(polygon.toPath().asComposePath())
     }
 }
 
 @Composable
 fun MainDashboardDetail(
-    zone: AqiResponse, 
-    provider: String?, 
+    zone: AqiResponse,
+    provider: String?,
     isDarkTheme: Boolean,
-    isUsAqi: Boolean = false
+    isUsAqi: Boolean = false,
 ) {
-    val pm25 = zone.concentrations?.get("pm2.5") 
-        ?: zone.concentrations?.get("pm2_5") 
-        ?: 0.0
+    val pm25 =
+        zone.concentrations?.get("pm2.5")
+            ?: zone.concentrations?.get("pm2_5")
+            ?: 0.0
 
-    val displayAqi = if (isUsAqi) {
-        zone.usAqi ?: if (pm25 > 0) calculateUsAqi(pm25) else 0
-    } else {
-        zone.nAqi
-    }
-    
+    val displayAqi =
+        if (isUsAqi) {
+            zone.usAqi ?: if (pm25 > 0) calculateUsAqi(pm25) else 0
+        } else {
+            zone.nAqi
+        }
+
     val aqiLabel = if (isUsAqi) "US AQI" else "NAQI"
     val cigarettes = if (pm25 > 0) calculateCigarettes(pm25) else 0.0
 
@@ -104,87 +107,92 @@ fun MainDashboardDetail(
     val animatedAqi by animateIntAsState(
         targetValue = displayAqi,
         animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-        label = "DashboardNumber"
+        label = "DashboardNumber",
     )
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val breatheScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "breatheScale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "breatheScale",
     )
 
     val aqiBgColor = aqiColor.copy(alpha = 0.12f)
     val uriHandler = LocalUriHandler.current
 
-    val isOpenMeteo = provider?.contains("Open-Meteo", ignoreCase = true) == true ||
+    val isOpenMeteo =
+        provider?.contains("Open-Meteo", ignoreCase = true) == true ||
             provider?.contains("OpenMeteo", ignoreCase = true) == true
-    val isAirGradient = provider?.contains("AirGradient", ignoreCase = true) == true ||
+    val isAirGradient =
+        provider?.contains("AirGradient", ignoreCase = true) == true ||
             provider?.contains("AirGradient", ignoreCase = true) == true
 
     val softBurstShape = remember { SoftBurstShape() }
 
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top 
+            verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = RoundedCornerShape(100),
-                    modifier = Modifier
-                        .padding(bottom = 12.dp)
-                        .expressiveClickable {}
+                    modifier =
+                        Modifier
+                            .padding(bottom = 12.dp)
+                            .expressiveClickable {},
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             Icons.Filled.LocationOn,
                             null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(12.dp),
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "Now Viewing",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                
+
                 Text(
                     text = zone.zoneName,
-                    style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp), 
+                    style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
                     fontWeight = FontWeight.Black,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 40.sp
+                    lineHeight = 40.sp,
                 )
 
                 if (isAirGradient) {
-                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                         Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(Color(0xFF4CAF50), CircleShape)
+                            modifier =
+                                Modifier
+                                    .size(6.dp)
+                                    .background(Color(0xFF4CAF50), CircleShape),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             "Live Ground Sensors",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else if (isOpenMeteo) {
@@ -192,7 +200,7 @@ fun MainDashboardDetail(
                         "Satellite & Model Data",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
@@ -202,59 +210,64 @@ fun MainDashboardDetail(
                     Image(
                         painter = painterResource(id = R.drawable.air_gradient_logo),
                         contentDescription = "AirGradient",
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .height(28.dp)
-                            .expressiveClickable { uriHandler.openUri("https://www.airgradient.com/") },
-                        alpha = 0.9f
+                        modifier =
+                            Modifier
+                                .padding(top = 8.dp)
+                                .height(28.dp)
+                                .expressiveClickable { uriHandler.openUri("https://www.airgradient.com/") },
+                        alpha = 0.9f,
                     )
                 }
-                
+
                 if (isOpenMeteo) {
                     val logoRes = if (isDarkTheme) R.drawable.open_meteo_logo else R.drawable.open_meteo_logo_light
                     Image(
                         painter = painterResource(id = logoRes),
                         contentDescription = "OpenMeteo",
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .height(28.dp)
-                            .expressiveClickable { uriHandler.openUri("https://open-meteo.com/") },
-                        alpha = 0.9f
+                        modifier =
+                            Modifier
+                                .padding(top = 8.dp)
+                                .height(28.dp)
+                                .expressiveClickable { uriHandler.openUri("https://open-meteo.com/") },
+                        alpha = 0.9f,
                     )
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
 
         if (!zone.warning.isNullOrBlank()) {
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                    ),
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
             ) {
                 Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
+                    modifier =
+                        Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.WarningAmber,
                         contentDescription = "Warning",
                         tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = zone.warning,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer,
-                        lineHeight = 20.sp
+                        lineHeight = 20.sp,
                     )
                 }
             }
@@ -262,33 +275,36 @@ fun MainDashboardDetail(
         }
 
         Box(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .fillMaxWidth()
-                .height(220.dp)
-                .expressiveClickable {}
+            modifier =
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .expressiveClickable {},
         ) {
             Surface(
                 shape = MaterialTheme.shapes.large,
                 color = aqiBgColor,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { 
-                        scaleX = breatheScale
-                        scaleY = breatheScale
-                    }
-            ) {} 
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = breatheScale
+                            scaleY = breatheScale
+                        },
+            ) {}
 
             // Content
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
                         text = "$animatedAqi",
@@ -296,40 +312,41 @@ fun MainDashboardDetail(
                         fontWeight = FontWeight.Black,
                         color = aqiColor,
                         letterSpacing = (-3).sp,
-                        lineHeight = aqiLineHeight
+                        lineHeight = aqiLineHeight,
                     )
                     Surface(
                         color = aqiColor,
                         shape = RoundedCornerShape(100),
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             text = aqiLabel,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = Color.Black,
                         )
                     }
                 }
 
                 Column(
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .fillMaxHeight(),
+                    modifier =
+                        Modifier
+                            .weight(0.8f)
+                            .fillMaxHeight(),
                     verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.End
+                    horizontalAlignment = Alignment.End,
                 ) {
                     Text(
                         "Primary",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
                     Text(
                         zone.mainPollutant.uppercase(),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -340,27 +357,28 @@ fun MainDashboardDetail(
                             val isWorse = change1h > 0
                             val trendColor = if (isWorse) Color(0xFFFF5252) else Color(0xFF4CAF50)
                             val icon = if (isWorse) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown
-                            
+
                             Icon(icon, null, tint = trendColor, modifier = Modifier.size(16.dp))
                             Text(
-                                text = "${if(isWorse) "+" else ""}$change1h /hr",
+                                text = "${if (isWorse) "+" else ""}$change1h /hr",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    val statusText = when {
-                        zone.timestampUnix != null -> getTimeAgo(zone.timestampUnix.toLong())
-                        else -> "Live"
-                    }
+                    val statusText =
+                        when {
+                            zone.timestampUnix != null -> getTimeAgo(zone.timestampUnix.toLong())
+                            else -> "Live"
+                        }
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.End,
                     )
                 }
             }
@@ -370,32 +388,34 @@ fun MainDashboardDetail(
 
         // Cigarette Equivalence Card
         if (cigarettes > 0.1) {
-             Card(
+            Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .expressiveClickable {}
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .expressiveClickable {},
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.errorContainer, 
-                                shape = softBurstShape
-                            ),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    shape = softBurstShape,
+                                ),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Filled.SmokingRooms, 
-                            null, 
+                            Icons.Filled.SmokingRooms,
+                            null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
@@ -403,12 +423,12 @@ fun MainDashboardDetail(
                         Text(
                             "≈ $cigarettes cigarettes",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                         Text(
                             "Equivalent PM2.5 inhalation today",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -422,13 +442,13 @@ fun MainDashboardDetail(
                 "Concentrations",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp),
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             SimpleFlowGrid(
                 items = pollutants.entries.toList(),
-                modifier = Modifier.padding(horizontal = 24.dp)
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
         }
 
@@ -438,33 +458,33 @@ fun MainDashboardDetail(
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 AqiHistoryGraph(
                     history = zone.history,
-                    isUsAqi = isUsAqi
+                    isUsAqi = isUsAqi,
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
 @Composable
 fun SimpleFlowGrid(
-    items: List<Map.Entry<String, Double>>, 
-    modifier: Modifier = Modifier
+    items: List<Map.Entry<String, Double>>,
+    modifier: Modifier = Modifier,
 ) {
     val rows = ceil(items.size / 2f).toInt()
-    
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         for (i in 0 until rows) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val firstIndex = i * 2
                 val secondIndex = firstIndex + 1
-                
+
                 if (firstIndex < items.size) {
                     val (k1, v1) = items[firstIndex]
                     PollutantChip(k1, v1, Modifier.weight(1f))
                 }
-                
+
                 if (secondIndex < items.size) {
                     val (k2, v2) = items[secondIndex]
                     PollutantChip(k2, v2, Modifier.weight(1f))
@@ -477,48 +497,54 @@ fun SimpleFlowGrid(
 }
 
 @Composable
-fun PollutantChip(key: String, value: Double, modifier: Modifier = Modifier) {
+fun PollutantChip(
+    key: String,
+    value: Double,
+    modifier: Modifier = Modifier,
+) {
     val unit = if (key.lowercase() == "co") "mg/m³" else "µg/m³"
-    
+
     Box(
-        modifier = modifier
-            .height(80.dp)
-            .expressiveClickable {}
+        modifier =
+            modifier
+                .height(80.dp)
+                .expressiveClickable {},
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 2.dp
+            tonalElevation = 2.dp,
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
                         formatPollutantName(key),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
-                
+
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         "$value",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Text(
                         unit,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

@@ -51,7 +51,7 @@ fun HomeScreen(
     zones: List<Zone>,
     onGoToExplore: () -> Unit,
     onRetry: () -> Unit,
-    viewModel: BreatheViewModel = viewModel()
+    viewModel: BreatheViewModel = viewModel(),
 ) {
     val isUsAqi by viewModel.isUsAqi.collectAsState()
 
@@ -72,18 +72,20 @@ fun HomeScreen(
         state = pullRefreshState,
         onRefresh = onRetry,
         modifier = Modifier.fillMaxSize(),
-        indicator = { PullToRefreshDefaults.LoadingIndicator(
-            state = pullRefreshState,
-            isRefreshing = isLoading,
-            modifier = Modifier.align(Alignment.TopCenter),
-        ) }
+        indicator = {
+            PullToRefreshDefaults.LoadingIndicator(
+                state = pullRefreshState,
+                isRefreshing = isLoading,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
     ) {
         if (isLoading && pinnedZones.isEmpty()) {
             LoadingScreen()
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 100.dp)
+                contentPadding = PaddingValues(bottom = 100.dp),
             ) {
                 item {
                     Text(
@@ -91,7 +93,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 24.dp, top = 32.dp, bottom = 16.dp),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
@@ -103,21 +105,23 @@ fun HomeScreen(
                             state = listState,
                             flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
                             contentPadding = PaddingValues(horizontal = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(pinnedZones, key = { it.zoneId }) { zone ->
                                 PinnedMiniCard(
                                     zone = zone,
                                     isSelected = zone.zoneId == (selectedZone?.zoneId),
                                     isUsAqi = isUsAqi,
-                                    onClick = { selectedZone = zone }
+                                    onClick = { selectedZone = zone },
                                 )
                             }
                         }
                     } else if (error != null) {
-                        Box(Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                        ) {
                             ErrorCard(msg = error, onRetry = onRetry)
                         }
                     } else {
@@ -131,14 +135,15 @@ fun HomeScreen(
 
                 if (selectedZone != null) {
                     item(key = "dashboard_detail") {
-                        val provider = remember(selectedZone, zones) {
-                            zones.find { it.id == selectedZone!!.zoneId }?.provider
-                        }
+                        val provider =
+                            remember(selectedZone, zones) {
+                                zones.find { it.id == selectedZone!!.zoneId }?.provider
+                            }
                         MainDashboardDetail(
-                            zone = selectedZone!!, 
-                            provider = provider, 
+                            zone = selectedZone!!,
+                            provider = provider,
                             isDarkTheme = isDarkTheme,
-                            isUsAqi = isUsAqi
+                            isUsAqi = isUsAqi,
                         )
                     }
                 }

@@ -27,9 +27,10 @@ fun MorphingPill(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val morph = remember(from, to) {
-        Morph(from.normalized(), to.normalized())
-    }
+    val morph =
+        remember(from, to) {
+            Morph(from.normalized(), to.normalized())
+        }
 
     val progress = remember { Animatable(0f) }
 
@@ -39,7 +40,7 @@ fun MorphingPill(
             kotlinx.coroutines.delay(120L)
             progress.animateTo(
                 1f,
-                animationSpec = tween(300)
+                animationSpec = tween(300),
             )
         } else {
             progress.snapTo(0f)
@@ -50,23 +51,25 @@ fun MorphingPill(
     val matrix = remember { Matrix() }
 
     Box(
-        modifier = modifier
-            .drawWithContent {
-                val p = morph.toPath(
-                    progress = progress.value,
-                    path = path,
-                    startAngle = 0
-                )
+        modifier =
+            modifier
+                .drawWithContent {
+                    val p =
+                        morph.toPath(
+                            progress = progress.value,
+                            path = path,
+                            startAngle = 0,
+                        )
 
-                processPath(
-                    path = p,
-                    size = size,
-                    scaleFactor = 1f,
-                    scaleMatrix = matrix
-                )
+                    processPath(
+                        path = p,
+                        size = size,
+                        scaleFactor = 1f,
+                        scaleMatrix = matrix,
+                    )
 
-                drawPath(path, color = color)
-            }
+                    drawPath(path, color = color)
+                },
     )
 }
 

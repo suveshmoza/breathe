@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sidharthify.breathe.data.Zone
+import com.sidharthify.breathe.expressiveClickable // Import
 import com.sidharthify.breathe.ui.components.ErrorCard
 import com.sidharthify.breathe.ui.components.ZoneListItem
-import com.sidharthify.breathe.expressiveClickable // Import
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -31,13 +31,14 @@ fun ExploreScreen(
     query: String,
     onSearchChange: (String) -> Unit,
     onPinToggle: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
 ) {
-    val filteredZones = remember(query, zones) {
-        zones.filter {
-            it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true)
+    val filteredZones =
+        remember(query, zones) {
+            zones.filter {
+                it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true)
+            }
         }
-    }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         Spacer(modifier = Modifier.height(24.dp))
@@ -52,12 +53,13 @@ fun ExploreScreen(
             placeholder = { Text("Search city or station ID...") },
             leadingIcon = { Icon(Icons.Filled.Search, null) },
             shape = RoundedCornerShape(100),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
+            colors =
+                TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -70,22 +72,23 @@ fun ExploreScreen(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 80.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
                 if (filteredZones.isEmpty()) {
                     item { Text("No zones found", modifier = Modifier.padding(8.dp)) }
                 }
-                
+
                 items(filteredZones, key = { it.id }) { zone ->
                     Box(
-                        modifier = Modifier
-                            .animateItem(tween(durationMillis = 300))
-                            .expressiveClickable     { onPinToggle(zone.id) }
+                        modifier =
+                            Modifier
+                                .animateItem(tween(durationMillis = 300))
+                                .expressiveClickable { onPinToggle(zone.id) },
                     ) {
                         ZoneListItem(
                             zone = zone,
                             isPinned = pinnedIds.contains(zone.id),
-                            onPinClick = {}
+                            onPinClick = {},
                         )
                     }
                 }

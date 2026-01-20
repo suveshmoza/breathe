@@ -1,24 +1,23 @@
 package com.sidharthify.breathe.widgets
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.doublePreferencesKey
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.work.CoroutineWorker
-import androidx.work.WorkerParameters
 import androidx.work.ListenableWorker.Result
+import androidx.work.WorkerParameters
 import com.sidharthify.breathe.data.RetrofitClient
 
 class BreatheWidgetWorker(
     private val context: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
 ) : CoroutineWorker(context, workerParams) {
-
     companion object {
         val PREF_ZONE_ID = stringPreferencesKey("zone_id")
         val PREF_ZONE_NAME = stringPreferencesKey("zone_name")
@@ -57,10 +56,10 @@ class BreatheWidgetWorker(
     }
 
     private suspend fun updateWidgetForId(
-        context: Context, 
-        glanceId: GlanceId, 
+        context: Context,
+        glanceId: GlanceId,
         pinnedIds: List<String>,
-        isUsAqi: Boolean
+        isUsAqi: Boolean,
     ) {
         var currentIndex = 0
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
@@ -84,11 +83,12 @@ class BreatheWidgetWorker(
             val concentrations = response.concentrations ?: emptyMap()
 
             val source = response.source ?: ""
-            val providerName = if (source.contains("airgradient", ignoreCase = true)) {
-                "AirGradient"
-            } else {
-                "OpenMeteo"
-            }
+            val providerName =
+                if (source.contains("airgradient", ignoreCase = true)) {
+                    "AirGradient"
+                } else {
+                    "OpenMeteo"
+                }
 
             updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply {
@@ -114,7 +114,7 @@ class BreatheWidgetWorker(
                 prefs.toMutablePreferences().apply { this[PREF_STATUS] = "Error" }
             }
         }
-        
+
         BreatheWidget().update(context, glanceId)
     }
 }

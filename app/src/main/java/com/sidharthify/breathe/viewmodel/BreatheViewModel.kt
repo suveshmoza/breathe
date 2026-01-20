@@ -5,6 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.sidharthify.breathe.data.AppState
+import com.sidharthify.breathe.data.AqiResponse
+import com.sidharthify.breathe.data.RetrofitClient
+import com.sidharthify.breathe.data.Zone
+import com.sidharthify.breathe.forceWidgetUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -15,11 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import com.sidharthify.breathe.data.AqiResponse
-import com.sidharthify.breathe.data.AppState
-import com.sidharthify.breathe.data.RetrofitClient
-import com.sidharthify.breathe.data.Zone
-import com.sidharthify.breathe.forceWidgetUpdate
 
 class BreatheViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
@@ -51,24 +51,29 @@ class BreatheViewModel : ViewModel() {
 
     private fun startPolling(context: Context) {
         if (pollingJob?.isActive == true) return
-        pollingJob = viewModelScope.launch {
-            while (isActive) {
-                delay(60000) // auto refresh every 60 seconds
-                refreshData(context, isAutoRefresh = true)
+        pollingJob =
+            viewModelScope.launch {
+                while (isActive) {
+                    delay(60000) // auto refresh every 60 seconds
+                    refreshData(context, isAutoRefresh = true)
+                }
             }
-        }
     }
 
     fun toggleAqiStandard(context: Context) {
         val newValue = !_isUsAqi.value
         _isUsAqi.value = newValue
-        context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
+        context
+            .getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("is_us_aqi", newValue)
             .apply()
     }
 
-    fun refreshData(context: Context, isAutoRefresh: Boolean = false) {
+    fun refreshData(
+        context: Context,
+        isAutoRefresh: Boolean = false,
+    ) {
         viewModelScope.launch {
             if (!isAutoRefresh) {
                 _uiState.update { it.copy(isLoading = true, error = null) }
@@ -83,55 +88,72 @@ class BreatheViewModel : ViewModel() {
 
                 val (pinnedZones, unpinnedZones) = zonesList.partition { it.id in pinnedSet }
 
-                val pinnedResults = pinnedZones.map { zone ->
-                    async(Dispatchers.IO) {
-                        try { RetrofitClient.api.getZoneAqi(zone.id) } catch (e: Exception) { null }
-                    }
-                }.awaitAll().filterNotNull()
+                val pinnedResults =
+                    pinnedZones
+                        .map { zone ->
+                            async(Dispatchers.IO) {
+                                try {
+                                    RetrofitClient.api.getZoneAqi(zone.id)
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                        }.awaitAll()
+                        .filterNotNull()
 
                 _uiState.update { current ->
                     val unpinnedIds = unpinnedZones.map { it.id }.toSet()
                     val preservedUnpinned = current.allAqiData.filter { it.zoneId in unpinnedIds }
-                    
+
                     current.copy(
                         allAqiData = pinnedResults + preservedUnpinned,
                         pinnedZones = pinnedResults,
-                        pinnedIds = pinnedSet
+                        pinnedIds = pinnedSet,
                     )
                 }
 
-                val unpinnedResults = if (unpinnedZones.isNotEmpty()) {
-                    unpinnedZones.map { zone ->
-                        async(Dispatchers.IO) {
-                            try { RetrofitClient.api.getZoneAqi(zone.id) } catch (e: Exception) { null }
-                        }
-                    }.awaitAll().filterNotNull()
-                } else {
-                    emptyList()
-                }
+                val unpinnedResults =
+                    if (unpinnedZones.isNotEmpty()) {
+                        unpinnedZones
+                            .map { zone ->
+                                async(Dispatchers.IO) {
+                                    try {
+                                        RetrofitClient.api.getZoneAqi(zone.id)
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                }
+                            }.awaitAll()
+                            .filterNotNull()
+                    } else {
+                        emptyList()
+                    }
 
                 val completeList = pinnedResults + unpinnedResults
 
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
-                        allAqiData = completeList
+                        allAqiData = completeList,
                     )
                 }
 
                 saveToCache(context, zonesList, completeList)
-
             } catch (e: Exception) {
                 if (!isAutoRefresh) {
-                    _uiState.update { 
-                        it.copy(isLoading = false, error = "Error: ${e.localizedMessage}") 
+                    _uiState.update {
+                        it.copy(isLoading = false, error = "Error: ${e.localizedMessage}")
                     }
                 }
             }
         }
     }
 
-    private fun saveToCache(context: Context, zones: List<Zone>, aqiData: List<AqiResponse>) {
+    private fun saveToCache(
+        context: Context,
+        zones: List<Zone>,
+        aqiData: List<AqiResponse>,
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val prefs = context.getSharedPreferences("breathe_cache", Context.MODE_PRIVATE)
             val editor = prefs.edit()
@@ -158,13 +180,14 @@ class BreatheViewModel : ViewModel() {
                 val aqiData: List<AqiResponse> = gson.fromJson(aqiJson, aqiType)
                 val pinnedResults = aqiData.filter { it.zoneId in pinnedSet }
 
-                _uiState.value = AppState(
-                    isLoading = false,
-                    zones = zones,
-                    allAqiData = aqiData,
-                    pinnedZones = pinnedResults,
-                    pinnedIds = pinnedSet
-                )
+                _uiState.value =
+                    AppState(
+                        isLoading = false,
+                        zones = zones,
+                        allAqiData = aqiData,
+                        pinnedZones = pinnedResults,
+                        pinnedIds = pinnedSet,
+                    )
             }
         } catch (e: Exception) {
             // Fail silently on cache load error
@@ -175,21 +198,27 @@ class BreatheViewModel : ViewModel() {
         _searchQuery.value = query
     }
 
-    fun togglePin(context: Context, zoneId: String) {
+    fun togglePin(
+        context: Context,
+        zoneId: String,
+    ) {
         val currentSet = _uiState.value.pinnedIds.toMutableSet()
         val isAdding = !currentSet.contains(zoneId)
 
         if (isAdding) currentSet.add(zoneId) else currentSet.remove(zoneId)
 
-        context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
-            .edit().putStringSet("pinned_ids", currentSet).apply()
+        context
+            .getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putStringSet("pinned_ids", currentSet)
+            .apply()
 
         val updatedPinnedList = _uiState.value.allAqiData.filter { it.zoneId in currentSet }
-        
+
         _uiState.update {
             it.copy(
                 pinnedIds = currentSet,
-                pinnedZones = updatedPinnedList
+                pinnedZones = updatedPinnedList,
             )
         }
 

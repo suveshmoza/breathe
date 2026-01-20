@@ -29,8 +29,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sidharthify.breathe.viewmodel.BreatheViewModel
 import com.sidharthify.breathe.expressiveClickable
+import com.sidharthify.breathe.viewmodel.BreatheViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,7 +45,7 @@ fun SettingsScreen(
     isAmoled: Boolean,
     onThemeToggle: () -> Unit,
     onAmoledToggle: () -> Unit,
-    viewModel: BreatheViewModel = viewModel()
+    viewModel: BreatheViewModel = viewModel(),
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
@@ -55,8 +55,8 @@ fun SettingsScreen(
     var isMadness by remember { mutableStateOf(false) }
     val isUsAqi by viewModel.isUsAqi.collectAsState()
     var versionLabel by remember { mutableStateOf("Current Version: v3.0-11") }
-    
-    val currentVersion = "v3.0-11" 
+
+    val currentVersion = "v3.0-11"
 
     // Reset tap counter if inactive
     LaunchedEffect(easterEggCounter) {
@@ -68,45 +68,48 @@ fun SettingsScreen(
 
     // Remember when you were young?
     val infiniteTransition = rememberInfiniteTransition(label = "madness")
-    
+
     // You shone like the sun.
     val madnessRotation by infiniteTransition.animateFloat(
         initialValue = -3f,
         targetValue = 3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "rotation"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "rotation",
     )
 
     // Shine on, you crazy diamond!
     val madnessScale by infiniteTransition.animateFloat(
         initialValue = 0.95f,
         targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "scale",
     )
-    
+
     // Now there's a look in your eyes, like black holes in the sky.
     val madnessDrift by infiniteTransition.animateFloat(
         initialValue = -15f,
         targetValue = 15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "drift"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "drift",
     )
 
     var showDataSourceDialog by remember { mutableStateOf(false) }
 
     fun checkForUpdates() {
         Toast.makeText(context, "Checking for updates...", Toast.LENGTH_SHORT).show()
-        
+
         scope.launch(Dispatchers.IO) {
             try {
                 val url = URL("https://api.github.com/repos/breathe-OSS/breathe/releases/latest")
@@ -114,7 +117,7 @@ fun SettingsScreen(
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 connection.setRequestProperty("User-Agent", "Breathe-App")
-                
+
                 if (connection.responseCode == 200) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(response)
@@ -152,36 +155,58 @@ fun SettingsScreen(
                 Column {
                     Text("Jammu & Kashmir regions (excl. Srinagar and Jammu)", fontWeight = FontWeight.Bold)
                     Text("Air quality pollutants data sourced from Open-Meteo.")
-                    Text("open-meteo.com", color = MaterialTheme.colorScheme.primary, modifier = Modifier.expressiveClickable { uriHandler.openUri("https://open-meteo.com") })
+                    Text(
+                        "open-meteo.com",
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier =
+                            Modifier.expressiveClickable {
+                                uriHandler.openUri("https://open-meteo.com")
+                            },
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Srinagar and Jammu", fontWeight = FontWeight.Bold)
                     Text("PM10 and PM2.5 sourced from AirGradient ground sensor, and others from Open-Meteo")
                     Row {
-                        Text("airgradient.com", color = MaterialTheme.colorScheme.primary, modifier = Modifier.expressiveClickable { uriHandler.openUri("https://www.airgradient.com") })
+                        Text(
+                            "airgradient.com",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier =
+                                Modifier.expressiveClickable {
+                                    uriHandler.openUri("https://www.airgradient.com")
+                                },
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("open-meteo.com", color = MaterialTheme.colorScheme.primary, modifier = Modifier.expressiveClickable { uriHandler.openUri("https://open-meteo.com") })
+                        Text(
+                            "open-meteo.com",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier =
+                                Modifier.expressiveClickable {
+                                    uriHandler.openUri("https://open-meteo.com")
+                                },
+                        )
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showDataSourceDialog = false }) { Text("Close") } }
+            confirmButton = { TextButton(onClick = { showDataSourceDialog = false }) { Text("Close") } },
         )
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 24.dp, bottom = 100.dp)
-            // Shine on you crazy diamond!
-            .graphicsLayer {
-                if (isMadness) {
-                    scaleX = madnessScale
-                    scaleY = madnessScale
-                    rotationZ = madnessRotation
-                    translationX = madnessDrift
-                }
-            }
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 24.dp, bottom = 100.dp)
+                // Shine on you crazy diamond!
+                .graphicsLayer {
+                    if (isMadness) {
+                        scaleX = madnessScale
+                        scaleY = madnessScale
+                        rotationZ = madnessRotation
+                        translationX = madnessDrift
+                    }
+                },
     ) {
         Text("Settings", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(24.dp))
@@ -189,50 +214,27 @@ fun SettingsScreen(
         // #### appearance #### //
         SettingsGroup(title = "Appearance", isAmoled = isAmoled) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .expressiveClickable { onThemeToggle() }
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .expressiveClickable { onThemeToggle() }
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Dark Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("Toggle app appearance", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Toggle app appearance",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Switch(checked = isDarkTheme, onCheckedChange = { onThemeToggle() },thumbContent = if (isDarkTheme) {
-                    {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(SwitchDefaults.IconSize),
-                        )
-                    }
-                } else {
-                    null
-                })
-            }
-
-            AnimatedVisibility(
-                visible = isDarkTheme,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .expressiveClickable { onAmoledToggle() }
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("AMOLED Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            Text("Pure black background", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = isAmoled, onCheckedChange = { onAmoledToggle() },thumbContent = if (isAmoled) {
+                Switch(
+                    checked = isDarkTheme,
+                    onCheckedChange = { onThemeToggle() },
+                    thumbContent =
+                        if (isDarkTheme) {
                             {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
@@ -242,7 +244,50 @@ fun SettingsScreen(
                             }
                         } else {
                             null
-                        })
+                        },
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isDarkTheme,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .expressiveClickable { onAmoledToggle() }
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("AMOLED Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Pure black background",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = isAmoled,
+                            onCheckedChange = { onAmoledToggle() },
+                            thumbContent =
+                                if (isAmoled) {
+                                    {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    }
+                                } else {
+                                    null
+                                },
+                        )
                     }
                 }
             }
@@ -257,86 +302,108 @@ fun SettingsScreen(
                 subtitle = "Use United States EPA calculation",
                 checked = isUsAqi,
                 onCheckedChange = { viewModel.toggleAqiStandard(context) },
-                showDivider = true
+                showDivider = true,
             )
 
             val standardText = if (isUsAqi) "US EPA (2024 Standard)" else "Indian National Air Quality Index (NAQI)"
-            
+
             SettingsItem("Data Standards", standardText, showDivider = true)
-            SettingsItem("Data Sources", "OpenMeteo & AirGradient ground sensors", onClick = { showDataSourceDialog = true }, showDivider = true)
-            SettingsItem("Breathe OSS", "View Source on GitHub", onClick = { uriHandler.openUri("https://github.com/breathe-OSS/breathe") }, showDivider = false)
+            SettingsItem(
+                "Data Sources",
+                "OpenMeteo & AirGradient ground sensors",
+                onClick = { showDataSourceDialog = true },
+                showDivider = true,
+            )
+            SettingsItem("Breathe OSS", "View Source on GitHub", onClick = {
+                uriHandler.openUri("https://github.com/breathe-OSS/breathe")
+            }, showDivider = false)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // #### team group #### //
         SettingsGroup(title = "We, the People of Breathe", isAmoled = isAmoled) {
-            SettingsItem("Sidharth \"Siddhi\" Sharma", "Lead Developer (@sidharthify)", onClick = { uriHandler.openUri("https://github.com/sidharthify") }, showDivider = true)
-            SettingsItem("Aaditya Gupta", "Developer (@Flashwreck)", onClick = { uriHandler.openUri("https://github.com/Flashwreck") }, showDivider = true)
-            SettingsItem("Veer P.S Singh", "Contributor (@Lostless1907)", onClick = { uriHandler.openUri("https://github.com/Lostless1907") }, showDivider = false)
-            SettingsItem("Suvesh Moza", "Contributor (@suveshmoza)", onClick = { uriHandler.openUri("https://github.com/suveshmoza") }, showDivider = false)
+            SettingsItem("Sidharth \"Siddhi\" Sharma", "Lead Developer (@sidharthify)", onClick = {
+                uriHandler.openUri("https://github.com/sidharthify")
+            }, showDivider = true)
+            SettingsItem("Aaditya Gupta", "Developer (@Flashwreck)", onClick = {
+                uriHandler.openUri("https://github.com/Flashwreck")
+            }, showDivider = true)
+            SettingsItem("Veer P.S Singh", "Contributor (@Lostless1907)", onClick = {
+                uriHandler.openUri("https://github.com/Lostless1907")
+            }, showDivider = false)
+            SettingsItem("Suvesh Moza", "Contributor (@suveshmoza)", onClick = {
+                uriHandler.openUri("https://github.com/suveshmoza")
+            }, showDivider = false)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // #### updates #### //
-        Text("Updates", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp, bottom = 8.dp))
-        
+        Text(
+            "Updates",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+        )
+
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             shape = MaterialTheme.shapes.large,
             border = if (isAmoled) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)) else null,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp), 
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Syd
                 Box(
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        easterEggCounter++
-                        if (easterEggCounter >= 7) {
-                            easterEggCounter = 0
-                            
-                            // Tribute
-                            isMadness = true
-                            Toast.makeText(context, "Shine on, you crazy diamond!", Toast.LENGTH_LONG).show()
-                            
-                            // Revert after 10 seconds (enough madness)
-                            scope.launch {
-                                delay(10000)
-                                isMadness = false
-                                versionLabel = "Current Version: $currentVersion"
+                    modifier =
+                        Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            easterEggCounter++
+                            if (easterEggCounter >= 7) {
+                                easterEggCounter = 0
+
+                                // Tribute
+                                isMadness = true
+                                Toast.makeText(context, "Shine on, you crazy diamond!", Toast.LENGTH_LONG).show()
+
+                                // Revert after 10 seconds (enough madness)
+                                scope.launch {
+                                    delay(10000)
+                                    isMadness = false
+                                    versionLabel = "Current Version: $currentVersion"
+                                }
                             }
-                        }
-                    }
+                        },
                 ) {
                     Text(
-                        text = versionLabel, 
-                        style = MaterialTheme.typography.labelLarge, 
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = versionLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }                
-                
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Box(
-                    modifier = Modifier.expressiveClickable { checkForUpdates() }
+                    modifier = Modifier.expressiveClickable { checkForUpdates() },
                 ) {
                     Surface(
                         shape = RoundedCornerShape(100),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        color = Color.Transparent
+                        color = Color.Transparent,
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(Icons.Filled.CloudSync, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -349,7 +416,7 @@ fun SettingsScreen(
                     text = "View all releases",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.expressiveClickable { uriHandler.openUri("https://github.com/breathe-OSS/breathe/releases/") }
+                    modifier = Modifier.expressiveClickable { uriHandler.openUri("https://github.com/breathe-OSS/breathe/releases/") },
                 )
             }
         }
@@ -361,21 +428,21 @@ fun SettingsScreen(
 @Composable
 fun SettingsGroup(
     title: String,
-    isAmoled: Boolean, 
-    content: @Composable ColumnScope.() -> Unit
+    isAmoled: Boolean,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
         )
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainer,
             border = if (isAmoled) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)) else null,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(content = content)
         }
@@ -384,39 +451,40 @@ fun SettingsGroup(
 
 @Composable
 fun SettingsItem(
-    title: String, 
-    subtitle: String, 
+    title: String,
+    subtitle: String,
     onClick: (() -> Unit)? = null,
-    showDivider: Boolean = true
+    showDivider: Boolean = true,
 ) {
-    val modifier = if (onClick != null) {
-        Modifier
-            .fillMaxWidth()
-            .expressiveClickable { onClick.invoke() }
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-    }
+    val modifier =
+        if (onClick != null) {
+            Modifier
+                .fillMaxWidth()
+                .expressiveClickable { onClick.invoke() }
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        }
 
     Column {
         Row(
             modifier = modifier,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if(onClick != null) {
+            if (onClick != null) {
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (showDivider) {
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
     }
@@ -428,37 +496,43 @@ fun SettingsSwitch(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    showDivider: Boolean = true
+    showDivider: Boolean = true,
 ) {
     Column {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .expressiveClickable { onCheckedChange(!checked) }
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .expressiveClickable { onCheckedChange(!checked) }
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked = checked, onCheckedChange = onCheckedChange,thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                null
-            })
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                thumbContent =
+                    if (checked) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+            )
         }
         if (showDivider) {
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
     }

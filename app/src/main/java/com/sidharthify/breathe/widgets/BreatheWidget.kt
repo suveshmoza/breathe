@@ -21,42 +21,45 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.*
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.state.PreferencesGlanceStateDefinition
 import com.sidharthify.breathe.MainActivity
-import com.sidharthify.breathe.util.getAqiColor
 import com.sidharthify.breathe.util.calculateUsAqi
+import com.sidharthify.breathe.util.getAqiColor
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_AQI
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PROVIDER
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_STATUS
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_ZONE_NAME
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_TOTAL_PINS
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_IS_US_AQI
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PM25
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PM10
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_NO2
-import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_SO2
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_CO
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_IS_US_AQI
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_NO2
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_O3
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PM10
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PM25
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_PROVIDER
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_SO2
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_STATUS
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_TOTAL_PINS
+import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_ZONE_NAME
 
 class BreatheWidget : GlanceAppWidget() {
-
-    override val sizeMode = SizeMode.Responsive(
-        setOf(
-            DpSize(40.dp, 40.dp),
-            DpSize(100.dp, 100.dp),
-            DpSize(200.dp, 140.dp)
+    override val sizeMode =
+        SizeMode.Responsive(
+            setOf(
+                DpSize(40.dp, 40.dp),
+                DpSize(100.dp, 100.dp),
+                DpSize(200.dp, 140.dp),
+            ),
         )
-    )
 
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
+    override suspend fun provideGlance(
+        context: Context,
+        id: GlanceId,
+    ) {
         provideContent {
             GlanceTheme {
                 WidgetContent()
@@ -86,14 +89,14 @@ class BreatheWidget : GlanceAppWidget() {
         val rawAqi = prefs[PREF_AQI] ?: 0
         val isUsAqi = prefs[PREF_IS_US_AQI] ?: false
         val pm25 = prefs[PREF_PM25] ?: 0.0
-        
+
         // Calculate AQI based on preference
         val displayAqi = (if (isUsAqi && pm25 > 0) calculateUsAqi(pm25) else rawAqi).coerceAtMost(500)
         val aqiLabel = if (isUsAqi) "US AQI" else "NAQI"
 
         val rawProvider = prefs[PREF_PROVIDER] ?: ""
         val providerText = rawProvider.replace("Source: ", "").replace("-", " ")
-        
+
         val totalPins = prefs[PREF_TOTAL_PINS] ?: 1
         val aqiColor = ColorProvider(getAqiColor(displayAqi, isUsAqi))
 
@@ -101,40 +104,41 @@ class BreatheWidget : GlanceAppWidget() {
         val isNarrow = size.width < 160.dp
         val showPollutants = size.height >= 130.dp && !isNarrow
 
-        val bigTextSize = when {
-            isNarrow -> 42.sp
-            else -> 56.sp
-        }
+        val bigTextSize =
+            when {
+                isNarrow -> 42.sp
+                else -> 56.sp
+            }
 
         Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(bgColor)
-                .cornerRadius(24.dp)
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(16.dp)
+            modifier =
+                GlanceModifier
+                    .fillMaxSize()
+                    .background(bgColor)
+                    .cornerRadius(24.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+                    .padding(16.dp),
         ) {
             if (isTiny) {
                 Column(
                     modifier = GlanceModifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text("$displayAqi", style = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = aqiColor))
                     Text("AQI", style = TextStyle(fontSize = 11.sp, color = onSurfaceVariant))
                 }
             } else {
                 Column(modifier = GlanceModifier.fillMaxSize()) {
-
                     Row(
                         modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = GlanceModifier.defaultWeight()) {
                             Text(
                                 text = zoneName,
                                 style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = onSurface),
-                                maxLines = 1
+                                maxLines = 1,
                             )
                         }
 
@@ -143,7 +147,7 @@ class BreatheWidget : GlanceAppWidget() {
                                 symbol = if (isLoading) "..." else "↻",
                                 contentColor = if (isLoading) outline else onSurface,
                                 containerColor = surfaceVariant,
-                                actionClass = RefreshCallback::class.java
+                                actionClass = RefreshCallback::class.java,
                             )
 
                             if (totalPins > 1) {
@@ -159,12 +163,12 @@ class BreatheWidget : GlanceAppWidget() {
 
                     Row(
                         modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment = Alignment.Bottom,
                     ) {
                         Text(
                             text = "$displayAqi",
                             style = TextStyle(fontSize = bigTextSize, fontWeight = FontWeight.Medium, color = aqiColor),
-                            modifier = GlanceModifier.padding(bottom = (-6).dp)
+                            modifier = GlanceModifier.padding(bottom = (-6).dp),
                         )
                         Spacer(GlanceModifier.width(8.dp))
                         Column(modifier = GlanceModifier.padding(bottom = 6.dp)) {
@@ -182,7 +186,7 @@ class BreatheWidget : GlanceAppWidget() {
                         Spacer(GlanceModifier.height(8.dp))
                         Text(
                             text = providerText,
-                            style = TextStyle(fontSize = 10.sp, color = outline, fontWeight = FontWeight.Medium)
+                            style = TextStyle(fontSize = 10.sp, color = outline, fontWeight = FontWeight.Medium),
                         )
                     }
                 }
@@ -192,27 +196,29 @@ class BreatheWidget : GlanceAppWidget() {
 
     @Composable
     private fun WidgetIconButton(
-        symbol: String, 
+        symbol: String,
         contentColor: ColorProvider,
         containerColor: ColorProvider,
-        actionClass: Class<out ActionCallback>
+        actionClass: Class<out ActionCallback>,
     ) {
         Box(
-            modifier = GlanceModifier
-                .size(32.dp) 
-                .background(containerColor)
-                .cornerRadius(12.dp)
-                .clickable(actionRunCallback(actionClass)),
-            contentAlignment = Alignment.Center
+            modifier =
+                GlanceModifier
+                    .size(32.dp)
+                    .background(containerColor)
+                    .cornerRadius(12.dp)
+                    .clickable(actionRunCallback(actionClass)),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = symbol,
-                style = TextStyle(
-                    color = contentColor, 
-                    fontSize = 18.sp, 
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
+                style =
+                    TextStyle(
+                        color = contentColor,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    ),
             )
         }
     }
@@ -221,7 +227,7 @@ class BreatheWidget : GlanceAppWidget() {
     private fun PollutantGrid(
         prefs: androidx.datastore.preferences.core.Preferences,
         textColor: ColorProvider,
-        labelColor: ColorProvider
+        labelColor: ColorProvider,
     ) {
         val pm25 = prefs[PREF_PM25] ?: -1.0
         val pm10 = prefs[PREF_PM10] ?: -1.0
@@ -229,13 +235,13 @@ class BreatheWidget : GlanceAppWidget() {
         val so2 = prefs[PREF_SO2] ?: -1.0
         val co = prefs[PREF_CO] ?: -1.0
         val o3 = prefs[PREF_O3] ?: -1.0
-        
+
         fun fmt(d: Double) = if (d < 0) "--" else d.toInt().toString()
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
             Box(modifier = GlanceModifier.fillMaxWidth().height(1.dp).background(GlanceTheme.colors.outline)) {}
             Spacer(GlanceModifier.height(8.dp))
-            
+
             Row(modifier = GlanceModifier.fillMaxWidth()) {
                 PollutantItem("PM2.5", fmt(pm25), textColor, labelColor, GlanceModifier.defaultWeight())
                 PollutantItem("PM10", fmt(pm10), textColor, labelColor, GlanceModifier.defaultWeight())
@@ -251,7 +257,13 @@ class BreatheWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun PollutantItem(label: String, value: String, textColor: ColorProvider, labelColor: ColorProvider, modifier: GlanceModifier) {
+    private fun PollutantItem(
+        label: String,
+        value: String,
+        textColor: ColorProvider,
+        labelColor: ColorProvider,
+        modifier: GlanceModifier,
+    ) {
         Column(modifier = modifier, horizontalAlignment = Alignment.Start) {
             Text(text = label, style = TextStyle(fontSize = 10.sp, color = labelColor, fontWeight = FontWeight.Medium))
             Text(text = value, style = TextStyle(fontSize = 13.sp, color = textColor, fontWeight = FontWeight.Bold))
@@ -259,15 +271,19 @@ class BreatheWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun EmptyStateWidget(bgColor: ColorProvider, textColor: ColorProvider) {
+    private fun EmptyStateWidget(
+        bgColor: ColorProvider,
+        textColor: ColorProvider,
+    ) {
         Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(bgColor)
-                .cornerRadius(24.dp)
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+            modifier =
+                GlanceModifier
+                    .fillMaxSize()
+                    .background(bgColor)
+                    .cornerRadius(24.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+                    .padding(16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Text("Tap to setup", style = TextStyle(color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Medium))
         }
@@ -275,17 +291,24 @@ class BreatheWidget : GlanceAppWidget() {
 }
 
 class RefreshCallback : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters,
+    ) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-             prefs.toMutablePreferences().apply {
-                 this[BreatheWidgetWorker.PREF_STATUS] = "Loading"
-             }
+            prefs.toMutablePreferences().apply {
+                this[BreatheWidgetWorker.PREF_STATUS] = "Loading"
+            }
         }
         BreatheWidget().update(context, glanceId)
-        
-        androidx.work.WorkManager.getInstance(context)
+
+        androidx.work.WorkManager
+            .getInstance(context)
             .enqueue(
-                androidx.work.OneTimeWorkRequest.Builder(BreatheWidgetWorker::class.java).build()
+                androidx.work.OneTimeWorkRequest
+                    .Builder(BreatheWidgetWorker::class.java)
+                    .build(),
             )
     }
 }
@@ -293,7 +316,11 @@ class RefreshCallback : ActionCallback {
 class BreatheWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = BreatheWidget()
 
-    override fun onUpdate(context: Context, appWidgetManager: android.appwidget.AppWidgetManager, appWidgetIds: IntArray) {
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: android.appwidget.AppWidgetManager,
+        appWidgetIds: IntArray,
+    ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         triggerWorker(context)
     }
@@ -303,7 +330,10 @@ class BreatheWidgetReceiver : GlanceAppWidgetReceiver() {
         triggerWorker(context)
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         super.onReceive(context, intent)
         if (intent.action == "com.sidharthify.breathe.FORCE_WIDGET_UPDATE") {
             triggerWorker(context)
@@ -311,9 +341,12 @@ class BreatheWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     private fun triggerWorker(context: Context) {
-        androidx.work.WorkManager.getInstance(context)
+        androidx.work.WorkManager
+            .getInstance(context)
             .enqueue(
-                androidx.work.OneTimeWorkRequest.Builder(BreatheWidgetWorker::class.java).build()
+                androidx.work.OneTimeWorkRequest
+                    .Builder(BreatheWidgetWorker::class.java)
+                    .build(),
             )
     }
 }

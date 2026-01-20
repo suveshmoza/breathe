@@ -3,7 +3,7 @@ package com.sidharthify.breathe.data
 import com.google.gson.annotations.SerializedName
 
 data class ZonesResponse(
-    val zones: List<Zone>
+    val zones: List<Zone>,
 )
 
 data class Zone(
@@ -11,12 +11,12 @@ data class Zone(
     val name: String,
     val provider: String?,
     val lat: Double?,
-    val lon: Double?
+    val lon: Double?,
 )
 
 data class Trends(
     @SerializedName("change_1h") val change1h: Int?,
-    @SerializedName("change_24h") val change24h: Int?
+    @SerializedName("change_24h") val change24h: Int?,
 )
 
 data class AqiResponse(
@@ -32,13 +32,13 @@ data class AqiResponse(
     @SerializedName("history") val history: List<HistoryPoint>? = emptyList(),
     @SerializedName("trends") val trends: Trends? = null,
     @SerializedName("warning") val warning: String? = null,
-    @SerializedName("source") val source: String? = null
+    @SerializedName("source") val source: String? = null,
 )
 
 data class HistoryPoint(
     @SerializedName("ts") val ts: Long,
     @SerializedName("aqi") val aqi: Int,
-    @SerializedName("us_aqi") val usAqi: Int?
+    @SerializedName("us_aqi") val usAqi: Int?,
 )
 
 data class AppState(
@@ -47,5 +47,5 @@ data class AppState(
     val zones: List<Zone> = emptyList(),
     val allAqiData: List<AqiResponse> = emptyList(),
     val pinnedZones: List<AqiResponse> = emptyList(),
-    val pinnedIds: Set<String> = emptySet()
+    val pinnedIds: Set<String> = emptySet(),
 )
