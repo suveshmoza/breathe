@@ -41,6 +41,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sidharthify.breathe.data.AnimationSettings
+import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.navigation.AppScreen
 import com.sidharthify.breathe.ui.components.MorphingPill
 import com.sidharthify.breathe.ui.screens.ExploreScreen
@@ -74,6 +76,37 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(prefs.getBoolean("is_amoled", false))
                 }
 
+            val animationSettingsState =
+                remember {
+                    mutableStateOf(
+                        AnimationSettings(
+                            animationsEnabled = prefs.getBoolean("anim_enabled", true),
+                            screenTransitions = prefs.getBoolean("anim_screen_transitions", true),
+                            colorTransitions = prefs.getBoolean("anim_color_transitions", true),
+                            numberAnimations = prefs.getBoolean("anim_number_animations", true),
+                            pulseEffects = prefs.getBoolean("anim_pulse_effects", true),
+                            morphingPill = prefs.getBoolean("anim_morphing_pill", true),
+                            pressFeedback = prefs.getBoolean("anim_press_feedback", true),
+                            listAnimations = prefs.getBoolean("anim_list_animations", true),
+                        ),
+                    )
+                }
+
+            val updateAnimationSettings: (AnimationSettings) -> Unit = { settings ->
+                animationSettingsState.value = settings
+                prefs
+                    .edit()
+                    .putBoolean("anim_enabled", settings.animationsEnabled)
+                    .putBoolean("anim_screen_transitions", settings.screenTransitions)
+                    .putBoolean("anim_color_transitions", settings.colorTransitions)
+                    .putBoolean("anim_number_animations", settings.numberAnimations)
+                    .putBoolean("anim_pulse_effects", settings.pulseEffects)
+                    .putBoolean("anim_morphing_pill", settings.morphingPill)
+                    .putBoolean("anim_press_feedback", settings.pressFeedback)
+                    .putBoolean("anim_list_animations", settings.listAnimations)
+                    .apply()
+            }
+
             val toggleTheme: () -> Unit = {
                 val newValue = !isDarkThemeState.value
                 isDarkThemeState.value = newValue
@@ -90,12 +123,16 @@ class MainActivity : ComponentActivity() {
                 darkTheme = isDarkThemeState.value,
                 amoledMode = isAmoledState.value,
             ) {
-                BreatheApp(
-                    isDarkTheme = isDarkThemeState.value,
-                    isAmoled = isAmoledState.value,
-                    onThemeToggle = toggleTheme,
-                    onAmoledToggle = toggleAmoled,
-                )
+                CompositionLocalProvider(LocalAnimationSettings provides animationSettingsState.value) {
+                    BreatheApp(
+                        isDarkTheme = isDarkThemeState.value,
+                        isAmoled = isAmoledState.value,
+                        onThemeToggle = toggleTheme,
+                        onAmoledToggle = toggleAmoled,
+                        animationSettings = animationSettingsState.value,
+                        onAnimationSettingsChange = updateAnimationSettings,
+                    )
+                }
             }
         }
     }
@@ -108,6 +145,8 @@ fun BreatheApp(
     isAmoled: Boolean,
     onThemeToggle: () -> Unit,
     onAmoledToggle: () -> Unit,
+    animationSettings: AnimationSettings,
+    onAnimationSettingsChange: (AnimationSettings) -> Unit,
     viewModel: BreatheViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -137,24 +176,28 @@ fun BreatheApp(
                     targetState = currentScreen,
                     label = "ScreenTransition",
                     transitionSpec = {
-                        val direction =
-                            if (targetState.ordinal > initialState.ordinal) {
-                                AnimatedContentTransitionScope.SlideDirection.Left
-                            } else {
-                                AnimatedContentTransitionScope.SlideDirection.Right
-                            }
+                        if (!animationSettings.screenTransitions) {
+                            fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))
+                        } else {
+                            val direction =
+                                if (targetState.ordinal > initialState.ordinal) {
+                                    AnimatedContentTransitionScope.SlideDirection.Left
+                                } else {
+                                    AnimatedContentTransitionScope.SlideDirection.Right
+                                }
 
-                        (
-                            slideIntoContainer(
-                                towards = direction,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
-                            ) + fadeIn(animationSpec = tween(400))
-                        ).togetherWith(
-                            slideOutOfContainer(
-                                towards = direction,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
-                            ) + fadeOut(animationSpec = tween(400)),
-                        )
+                            (
+                                slideIntoContainer(
+                                    towards = direction,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
+                                ) + fadeIn(animationSpec = tween(400))
+                            ).togetherWith(
+                                slideOutOfContainer(
+                                    towards = direction,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
+                                ) + fadeOut(animationSpec = tween(400)),
+                            )
+                        }
                     },
                 ) { screen ->
                     Box(
@@ -209,6 +252,8 @@ fun BreatheApp(
                                         isAmoled = isAmoled,
                                         onThemeToggle = onThemeToggle,
                                         onAmoledToggle = onAmoledToggle,
+                                        animationSettings = animationSettings,
+                                        onAnimationSettingsChange = onAnimationSettingsChange,
                                         viewModel = viewModel,
                                     )
                                 }
@@ -257,10 +302,22 @@ fun BreatheApp(
                                             alpha = 0.5f,
                                         )
                                 },
+                            animationSpec =
+                                if (animationSettings.colorTransitions) {
+                                    tween(durationMillis = 300)
+                                } else {
+                                    tween(durationMillis = 0)
+                                },
                             label = "IconColor",
                         )
                         val pillColor by animateColorAsState(
                             targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                            animationSpec =
+                                if (animationSettings.colorTransitions) {
+                                    tween(durationMillis = 300)
+                                } else {
+                                    tween(durationMillis = 0)
+                                },
                             label = "PillColor",
                         )
 
@@ -297,10 +354,16 @@ fun BreatheApp(
 
 fun Modifier.expressiveClickable(onClick: () -> Unit): Modifier =
     composed {
+        val animationSettings = LocalAnimationSettings.current
         var isPressed by remember { mutableStateOf(false) }
         val scale by animateFloatAsState(
-            targetValue = if (isPressed) 0.90f else 1f,
-            animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+            targetValue = if (isPressed && animationSettings.pressFeedback) 0.90f else 1f,
+            animationSpec =
+                if (animationSettings.pressFeedback) {
+                    spring(dampingRatio = 0.4f, stiffness = 400f)
+                } else {
+                    spring(stiffness = 10000f)
+                },
             label = "Squish",
         )
 

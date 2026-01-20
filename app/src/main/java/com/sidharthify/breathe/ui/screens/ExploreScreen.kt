@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.data.Zone
 import com.sidharthify.breathe.expressiveClickable // Import
 import com.sidharthify.breathe.ui.components.ErrorCard
@@ -33,6 +34,8 @@ fun ExploreScreen(
     onPinToggle: (String) -> Unit,
     onRetry: () -> Unit,
 ) {
+    val animationSettings = LocalAnimationSettings.current
+    
     val filteredZones =
         remember(query, zones) {
             zones.filter {
@@ -82,7 +85,13 @@ fun ExploreScreen(
                     Box(
                         modifier =
                             Modifier
-                                .animateItem(tween(durationMillis = 300))
+                                .then(
+                                    if (animationSettings.listAnimations) {
+                                        Modifier.animateItem(tween(durationMillis = 300))
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                                 .expressiveClickable { onPinToggle(zone.id) },
                     ) {
                         ZoneListItem(

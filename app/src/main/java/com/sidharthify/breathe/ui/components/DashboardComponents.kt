@@ -42,6 +42,7 @@ import androidx.graphics.shapes.star
 import androidx.graphics.shapes.toPath
 import com.sidharthify.breathe.R
 import com.sidharthify.breathe.data.AqiResponse
+import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.util.calculateCigarettes
 import com.sidharthify.breathe.util.calculateUsAqi
@@ -98,22 +99,32 @@ fun MainDashboardDetail(
     val aqiFontSize = if (screenWidth < 390) 64.sp else 84.sp
     val aqiLineHeight = if (screenWidth < 390) 64.sp else 84.sp
 
+    val animationSettings = LocalAnimationSettings.current
+
     val aqiColor by animateColorAsState(
         targetValue = getAqiColor(displayAqi, isUsAqi),
-        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        animationSpec = if (animationSettings.colorTransitions) {
+            tween(durationMillis = 600, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 0)
+        },
         label = "DashboardColor",
     )
 
     val animatedAqi by animateIntAsState(
         targetValue = displayAqi,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        animationSpec = if (animationSettings.numberAnimations) {
+            tween(durationMillis = 800, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 0)
+        },
         label = "DashboardNumber",
     )
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val breatheScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.02f,
+        targetValue = if (animationSettings.pulseEffects) 1.02f else 1f,
         animationSpec =
             infiniteRepeatable(
                 animation = tween(4000, easing = FastOutSlowInEasing),

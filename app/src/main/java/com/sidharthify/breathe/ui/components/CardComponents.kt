@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sidharthify.breathe.data.AqiResponse
+import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.data.Zone
 import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.util.calculateUsAqi
@@ -50,9 +51,15 @@ fun PinnedMiniCard(
             zone.nAqi
         }
 
+    val animationSettings = LocalAnimationSettings.current
+
     val aqiColor by animateColorAsState(
         targetValue = getAqiColor(displayAqi, isUsAqi),
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = if (animationSettings.colorTransitions) {
+            tween(durationMillis = 300)
+        } else {
+            tween(durationMillis = 0)
+        },
         label = "MiniCardColor",
     )
 

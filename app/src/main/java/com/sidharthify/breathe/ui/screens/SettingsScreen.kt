@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +31,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sidharthify.breathe.data.AnimationSettings
 import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.viewmodel.BreatheViewModel
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,8 @@ fun SettingsScreen(
     isAmoled: Boolean,
     onThemeToggle: () -> Unit,
     onAmoledToggle: () -> Unit,
+    animationSettings: AnimationSettings,
+    onAnimationSettingsChange: (AnimationSettings) -> Unit,
     viewModel: BreatheViewModel = viewModel(),
 ) {
     val uriHandler = LocalUriHandler.current
@@ -317,6 +322,117 @@ fun SettingsScreen(
             SettingsItem("Breathe OSS", "View Source on GitHub", onClick = {
                 uriHandler.openUri("https://github.com/breathe-OSS/breathe")
             }, showDivider = false)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // #### performance #### //
+        var performanceExpanded by remember { mutableStateOf(false) }
+
+        SettingsGroup(title = "Performance", isAmoled = isAmoled) {
+            SettingsSwitch(
+                title = "Animations",
+                subtitle = "Enable all animations",
+                checked = animationSettings.animationsEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled) {
+                        onAnimationSettingsChange(AnimationSettings())
+                    } else {
+                        onAnimationSettingsChange(AnimationSettings.Disabled)
+                    }
+                },
+                showDivider = true,
+            )
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .expressiveClickable { performanceExpanded = !performanceExpanded }
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Advanced Animation Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (performanceExpanded) "Tap to collapse" else "Fine-tune individual animations",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    if (performanceExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            AnimatedVisibility(
+                visible = performanceExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                    SettingsSwitch(
+                        title = "Screen Transitions",
+                        subtitle = "Slide animations between screens",
+                        checked = animationSettings.screenTransitions,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(screenTransitions = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "Color Transitions",
+                        subtitle = "Smooth AQI color changes",
+                        checked = animationSettings.colorTransitions,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(colorTransitions = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "Number Animations",
+                        subtitle = "Animated AQI value counting",
+                        checked = animationSettings.numberAnimations,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(numberAnimations = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "Pulse Effects",
+                        subtitle = "Breathing animation on cards",
+                        checked = animationSettings.pulseEffects,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(pulseEffects = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "Morphing Navigation",
+                        subtitle = "Shape morphing in nav bar",
+                        checked = animationSettings.morphingPill,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(morphingPill = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "Press Feedback",
+                        subtitle = "Squish effect on tap",
+                        checked = animationSettings.pressFeedback,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(pressFeedback = it)) },
+                        showDivider = true,
+                    )
+
+                    SettingsSwitch(
+                        title = "List Animations",
+                        subtitle = "Animated list items in Explore",
+                        checked = animationSettings.listAnimations,
+                        onCheckedChange = { onAnimationSettingsChange(animationSettings.copy(listAnimations = it)) },
+                        showDivider = false,
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
+import com.sidharthify.breathe.data.LocalAnimationSettings
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -27,6 +28,8 @@ fun MorphingPill(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    val animationSettings = LocalAnimationSettings.current
+    
     val morph =
         remember(from, to) {
             Morph(from.normalized(), to.normalized())
@@ -34,14 +37,18 @@ fun MorphingPill(
 
     val progress = remember { Animatable(0f) }
 
-    LaunchedEffect(isSelected) {
+    LaunchedEffect(isSelected, animationSettings.morphingPill) {
         if (isSelected) {
-            progress.snapTo(0f)
-            kotlinx.coroutines.delay(120L)
-            progress.animateTo(
-                1f,
-                animationSpec = tween(300),
-            )
+            if (animationSettings.morphingPill) {
+                progress.snapTo(0f)
+                kotlinx.coroutines.delay(120L)
+                progress.animateTo(
+                    1f,
+                    animationSpec = tween(300),
+                )
+            } else {
+                progress.snapTo(1f)
+            }
         } else {
             progress.snapTo(0f)
         }
