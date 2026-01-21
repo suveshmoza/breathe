@@ -498,11 +498,6 @@ fun MainDashboardDetail(
                         fontWeight = FontWeight.Bold,
                         color = aqiColor,
                     )
-                    Text(
-                        text = aqiCategory.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
