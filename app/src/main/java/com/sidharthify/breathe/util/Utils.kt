@@ -27,10 +27,8 @@
 package com.sidharthify.breathe.util
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.em
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
 import kotlin.math.roundToInt
 
 fun createBlobIcon(
@@ -51,14 +51,14 @@ fun createBlobIcon(
     color: Int,
 ): Drawable {
     val radius = 32f
-    val bitmap = Bitmap.createBitmap((radius * 2).toInt(), (radius * 2).toInt(), Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap((radius * 2).toInt(), (radius * 2).toInt())
     val canvas = Canvas(bitmap)
     val paint = Paint().apply { isAntiAlias = true }
 
     paint.color = color
     canvas.drawCircle(radius, radius, radius, paint)
 
-    return BitmapDrawable(context.resources, bitmap)
+    return bitmap.toDrawable(context.resources)
 }
 
 fun formatPollutantName(key: String): String =

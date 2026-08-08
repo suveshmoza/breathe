@@ -34,9 +34,15 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Typeface
-import android.graphics.drawable.BitmapDrawable
 import android.util.LruCache
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,21 +50,38 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sidharthify.breathe.data.AqiResponse
+import com.sidharthify.breathe.data.SensorInfo
 import com.sidharthify.breathe.data.Zone
 import com.sidharthify.breathe.ui.components.MainDashboardDetail
-import com.sidharthify.breathe.data.SensorInfo
 import com.sidharthify.breathe.util.IndiaBoundaryOverlay
 import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.getAqiColor
@@ -82,6 +105,7 @@ fun MapScreen(
     onPinToggle: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val bitmapCache = remember { LruCache<String, Bitmap>(50) }
@@ -210,7 +234,7 @@ fun MapScreen(
                             if (data != null) {
                                 getAqiColor(displayAqi, !isUsAqi).toArgb()
                             } else {
-                                android.graphics.Color.GRAY
+                                Color.GRAY
                             }
 
                         val isAirGradient = zone.provider?.contains("airgradient", ignoreCase = true) == true
@@ -223,7 +247,7 @@ fun MapScreen(
                             bitmapCache.put(cacheKey, bitmap)
                         }
 
-                        marker.icon = BitmapDrawable(context.resources, bitmap)
+                        marker.icon = bitmap.toDrawable(resources)
 
                         marker.setOnMarkerClickListener { _, _ ->
                             if (data != null) {
@@ -312,7 +336,7 @@ fun createMarkerBitmap(
     val sizePx = (40 * density).toInt()
     val textSizePx = 14f * density
 
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(sizePx, sizePx)
     val canvas = Canvas(bitmap)
 
     val strokeWidth = 2f * density
@@ -356,7 +380,7 @@ fun createMarkerBitmap(
     if (hasGroundSensor) {
         val dotRadius = 6f * density
         val dotPaint = Paint().apply {
-            this.color = Color.parseColor("#39FF14")
+            this.color = "#39FF14".toColorInt()
             isAntiAlias = true
             style = Paint.Style.FILL
         }

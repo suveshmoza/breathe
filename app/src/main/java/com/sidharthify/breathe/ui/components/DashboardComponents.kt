@@ -30,12 +30,30 @@ package com.sidharthify.breathe.ui.components
 
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,7 +63,19 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmokingRooms
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,9 +93,10 @@ import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -87,7 +118,6 @@ import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.util.PollutantText
 import com.sidharthify.breathe.util.calculateChange1h
 import com.sidharthify.breathe.util.calculateCigarettes
-import com.sidharthify.breathe.util.formatPollutantName
 import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.getAqiCategory
 import com.sidharthify.breathe.util.getAqiColor
@@ -107,26 +137,6 @@ class SoftBurstShape : Shape {
                 radius = radius,
                 innerRadius = radius * 0.7f,
                 rounding = CornerRounding(radius * 0.2f),
-                centerX = size.width / 2f,
-                centerY = size.height / 2f,
-            )
-        return Outline.Generic(polygon.toPath().asComposePath())
-    }
-}
-
-class CookieShape : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val radius = size.minDimension / 2f
-        val polygon =
-            RoundedPolygon.star(
-                numVerticesPerRadius = 4,
-                radius = radius,
-                innerRadius = radius * 0.8f,
-                rounding = CornerRounding(radius * 0.4f),
                 centerX = size.width / 2f,
                 centerY = size.height / 2f,
             )
@@ -159,11 +169,12 @@ fun MainDashboardDetail(
     val pm25For24h = zone.averages24h?.get("pm2_5") ?: zone.averages24h?.get("pm2.5") ?: pm25
     val cigarettes = if (pm25For24h > 0) calculateCigarettes(pm25For24h) else 0.0
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
+    val screenWidth = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.width.toDp()
+    }
     // If screen is narrow (<390dp), reduce font to prevent line wrap
-    val aqiFontSize = if (screenWidth < 390) 64.sp else 84.sp
-    val aqiLineHeight = if (screenWidth < 390) 64.sp else 84.sp
+    val aqiFontSize = if (screenWidth < 390.dp) 64.sp else 84.sp
+    val aqiLineHeight = if (screenWidth < 390.dp) 64.sp else 84.sp
 
     val animationSettings = LocalAnimationSettings.current
 
@@ -432,7 +443,7 @@ fun MainDashboardDetail(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
-                    val displayPollutant = zone.usMainPollutant ?: zone.mainPollutant
+                    // val displayPollutant = zone.usMainPollutant ?: zone.mainPollutant
                     PollutantText(
                         rawKey = zone.mainPollutant,
                         style = MaterialTheme.typography.headlineMedium,
@@ -752,10 +763,10 @@ fun SimpleFlowGrid(
 
 @Composable
 fun IndividualNodeReadingsSection(
+    modifier: Modifier = Modifier,
     nodes: Map<String, NodeReading>,
     isUsAqi: Boolean,
     sensorInfos: List<SensorInfo> = emptyList(),
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(horizontal = 24.dp)) {
         Text(
@@ -807,11 +818,11 @@ fun IndividualNodeReadingsSection(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NodeReadingCard(
+    modifier: Modifier = Modifier,
     nodeName: String,
     reading: NodeReading,
     isUsAqi: Boolean,
     sensorInfo: SensorInfo? = null,
-    modifier: Modifier = Modifier,
 ) {
     val isDown = reading.pm25 == null
     val displayAqi: Int? =
@@ -848,9 +859,9 @@ fun NodeReadingCard(
                 } else {
                     NodeInfoRow("AQI", displayAqi?.toString() ?: "—")
                     NodeInfoRow("AQI Standard", aqiLabel)
-                    NodeInfoRow("PM2.5", reading.pm25?.let { "${it} µg/m³" } ?: "—")
-                    NodeInfoRow("PM10", reading.pm10?.let { "${it} µg/m³" } ?: "—")
-                    NodeInfoRow("Temperature", reading.temp?.let { "${it} °C" } ?: "—")
+                    NodeInfoRow("PM2.5", reading.pm25.let { "$it µg/m³" })
+                    NodeInfoRow("PM10", reading.pm10?.let { "$it µg/m³" } ?: "—")
+                    NodeInfoRow("Temperature", reading.temp?.let { "$it °C" } ?: "—")
                     NodeInfoRow("Humidity", reading.humidity?.let { "${it}%" } ?: "—")
                     if (sensorInfo != null) {
                         NodeInfoRow("Provider", sensorInfo.provider)
@@ -971,7 +982,7 @@ fun NodeReadingCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        if (isDown) "N/A" else reading.pm25?.let { "${it}" } ?: "—",
+                        if (isDown) "N/A" else reading.pm25.let { "$it" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -983,7 +994,7 @@ fun NodeReadingCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        if (isDown) "N/A" else reading.pm10?.let { "${it}" } ?: "—",
+                        if (isDown) "N/A" else reading.pm10?.let { "$it" } ?: "—",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )

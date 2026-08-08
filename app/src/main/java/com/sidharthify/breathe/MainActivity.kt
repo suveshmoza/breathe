@@ -47,26 +47,50 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sidharthify.breathe.data.AnimationSettings
@@ -123,28 +147,28 @@ class MainActivity : ComponentActivity() {
             val updateAnimationSettings: (AnimationSettings) -> Unit = { settings ->
                 animationSettingsState.value = settings
                 prefs
-                    .edit()
-                    .putBoolean("anim_enabled", settings.animationsEnabled)
-                    .putBoolean("anim_screen_transitions", settings.screenTransitions)
-                    .putBoolean("anim_color_transitions", settings.colorTransitions)
-                    .putBoolean("anim_number_animations", settings.numberAnimations)
-                    .putBoolean("anim_pulse_effects", settings.pulseEffects)
-                    .putBoolean("anim_morphing_pill", settings.morphingPill)
-                    .putBoolean("anim_press_feedback", settings.pressFeedback)
-                    .putBoolean("anim_list_animations", settings.listAnimations)
-                    .apply()
+                    .edit {
+                        putBoolean("anim_enabled", settings.animationsEnabled)
+                            .putBoolean("anim_screen_transitions", settings.screenTransitions)
+                            .putBoolean("anim_color_transitions", settings.colorTransitions)
+                            .putBoolean("anim_number_animations", settings.numberAnimations)
+                            .putBoolean("anim_pulse_effects", settings.pulseEffects)
+                            .putBoolean("anim_morphing_pill", settings.morphingPill)
+                            .putBoolean("anim_press_feedback", settings.pressFeedback)
+                            .putBoolean("anim_list_animations", settings.listAnimations)
+                    }
             }
 
             val toggleTheme: () -> Unit = {
                 val newValue = !isDarkThemeState.value
                 isDarkThemeState.value = newValue
-                prefs.edit().putBoolean("is_dark_theme", newValue).apply()
+                prefs.edit { putBoolean("is_dark_theme", newValue) }
             }
 
             val toggleAmoled: () -> Unit = {
                 val newValue = !isAmoledState.value
                 isAmoledState.value = newValue
-                prefs.edit().putBoolean("is_amoled", newValue).apply()
+                prefs.edit { putBoolean("is_amoled", newValue) }
             }
 
             BreatheTheme(
@@ -470,8 +494,6 @@ fun BreatheTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
 
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme

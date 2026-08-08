@@ -34,7 +34,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -45,7 +44,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
@@ -71,7 +69,6 @@ import androidx.compose.ui.unit.sp
 import com.sidharthify.breathe.data.HistoricalDataPoint
 import com.sidharthify.breathe.data.HistoricalStats
 import com.sidharthify.breathe.data.HistoryState
-import com.sidharthify.breathe.data.NodeReading
 import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.calculateUsAqiPm10
 import com.sidharthify.breathe.util.getAqiColor
@@ -223,7 +220,7 @@ fun HistoryControlsBar(
                     singleLine = true,
                     textStyle = TextStyle(fontSize = 13.sp),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sensorExpanded) },
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).height(48.dp),
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).height(48.dp),
                 )
                 ExposedDropdownMenu(
                     expanded = sensorExpanded,
@@ -398,7 +395,7 @@ private fun StatItem(label: String, value: Double?, modifier: Modifier = Modifie
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            value?.let { String.format("%.1f", it) } ?: "--",
+            value?.let { String.format(Locale.getDefault(), "%.1f", it) } ?: "--",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
@@ -407,10 +404,10 @@ private fun StatItem(label: String, value: Double?, modifier: Modifier = Modifie
 
 @Composable
 fun ExtendedHistoryChart(
+    modifier: Modifier = Modifier,
     data: List<HistoricalDataPoint>,
     showPm25: Boolean = true,
     showPm10: Boolean = true,
-    modifier: Modifier = Modifier,
 ) {
     if (data.isEmpty()) return
 
@@ -652,8 +649,12 @@ fun ExtendedHistoryChart(
                             )
 
                             val parts = mutableListOf<String>()
-                            if (showPm25 && pt.pm25 != null) parts.add("PM2.5: ${String.format("%.1f", pt.pm25)}")
-                            if (showPm10 && pt.pm10 != null) parts.add("PM10: ${String.format("%.1f", pt.pm10)}")
+                            if (showPm25 && pt.pm25 != null) {
+                                parts.add("PM2.5: ${String.format(Locale.getDefault(), "%.1f", pt.pm25)}")
+                            }
+                            if (showPm10 && pt.pm10 != null) {
+                                parts.add("PM10: ${String.format(Locale.getDefault(),"%.1f", pt.pm10)}")
+                            }
                             val label = "${parts.joinToString("  ")} @ $timeStr"
 
                             tooltipTextPaint.color = highlightColorArgb
@@ -797,8 +798,8 @@ fun ExtendedDotHistoryChart(
 ) {
     if (data.isEmpty()) return
 
-    val use25 = showPm25 || (!showPm25 && !showPm10)
-    val use10 = showPm10 || (!showPm25 && !showPm10)
+    val use25 = showPm25 || (!showPm10)
+    val use10 = showPm10 || (!showPm25)
     val title = when {
         use25 && use10 -> "PM2.5 & PM10 Grid"
         use25 -> "PM2.5 Grid"
