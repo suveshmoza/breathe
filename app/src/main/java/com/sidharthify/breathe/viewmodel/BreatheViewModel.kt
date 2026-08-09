@@ -28,7 +28,8 @@ package com.sidharthify.breathe.viewmodel
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
@@ -39,7 +40,7 @@ import com.sidharthify.breathe.data.HistoryState
 import com.sidharthify.breathe.data.RetrofitClient
 import com.sidharthify.breathe.data.SensorInfo
 import com.sidharthify.breathe.data.Zone
-import com.sidharthify.breathe.forceWidgetUpdate
+import com.sidharthify.breathe.widgets.forceWidgetUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class BreatheViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AppState())
@@ -90,7 +92,7 @@ class BreatheViewModel : ViewModel() {
         pollingJob =
             viewModelScope.launch {
                 while (isActive) {
-                    delay(960000) // auto refresh every 16 minutes
+                    delay(960000.milliseconds) // auto refresh every 16 minutes
                     refreshData(context, isAutoRefresh = true)
                 }
             }
@@ -101,9 +103,9 @@ class BreatheViewModel : ViewModel() {
         _isUsAqi.value = newValue
         context
             .getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean("is_us_aqi", newValue)
-            .apply()
+            .edit {
+                putBoolean("is_us_aqi", newValue)
+            }
     }
 
     fun refreshData(
@@ -121,7 +123,7 @@ class BreatheViewModel : ViewModel() {
             try {
                 val zonesDeferred = async(Dispatchers.IO) { RetrofitClient.api.getZones().zones }
                 val sensorsDeferred = async(Dispatchers.IO) {
-                    try { RetrofitClient.api.getSensorInfo().sensors } catch (e: Exception) { emptyList() }
+                    try { RetrofitClient.api.getSensorInfo().sensors } catch (_: Exception) { emptyList() }
                 }
 
                 val zonesList = zonesDeferred.await()
@@ -137,7 +139,7 @@ class BreatheViewModel : ViewModel() {
                             async(Dispatchers.IO) {
                                 try {
                                     RetrofitClient.api.getZoneAqi(zone.id)
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     null
                                 }
                             }
@@ -162,7 +164,7 @@ class BreatheViewModel : ViewModel() {
                                 async(Dispatchers.IO) {
                                     try {
                                         RetrofitClient.api.getZoneAqi(zone.id)
-                                    } catch (e: Exception) {
+                                    } catch (_: Exception) {
                                         null
                                     }
                                 }
@@ -201,11 +203,11 @@ class BreatheViewModel : ViewModel() {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val prefs = context.getSharedPreferences("breathe_cache", Context.MODE_PRIVATE)
-            val editor = prefs.edit()
-            editor.putString("cached_zones", gson.toJson(zones))
-            editor.putString("cached_aqi", gson.toJson(aqiData))
-            editor.putString("cached_sensors", gson.toJson(sensors))
-            editor.apply()
+            prefs.edit {
+                putString("cached_zones", gson.toJson(zones))
+                putString("cached_aqi", gson.toJson(aqiData))
+                putString("cached_sensors", gson.toJson(sensors))
+            }
         }
     }
 
@@ -239,7 +241,7 @@ class BreatheViewModel : ViewModel() {
                         sensorInfos = sensors,
                     )
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Fail silently on cache load error
         }
     }
@@ -259,9 +261,9 @@ class BreatheViewModel : ViewModel() {
 
         context
             .getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
-            .edit()
-            .putStringSet("pinned_ids", currentSet)
-            .apply()
+            .edit {
+                putStringSet("pinned_ids", currentSet)
+            }
 
         val updatedPinnedList = _uiState.value.allAqiData.filter { it.zoneId in currentSet }
 
@@ -385,7 +387,7 @@ class BreatheViewModel : ViewModel() {
         }
 
         val url = "https://api.breatheoss.app/historical-data/$location/${state.selectedRange}/$interval/pm2.5,pm10?format=csv"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }

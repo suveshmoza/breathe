@@ -24,14 +24,14 @@
  * SOFTWARE.
  */
 
-package com.sidharthify.breathe
+package com.sidharthify.breathe.widgets
 
 import android.content.Context
 import android.content.Intent
 
 fun forceWidgetUpdate(context: Context) {
     val intent =
-        Intent(context, com.sidharthify.breathe.widgets.BreatheWidgetReceiver::class.java).apply {
+        Intent(context, BreatheWidgetReceiver::class.java).apply {
             action = "com.sidharthify.breathe.FORCE_WIDGET_UPDATE"
         }
     context.sendBroadcast(intent)

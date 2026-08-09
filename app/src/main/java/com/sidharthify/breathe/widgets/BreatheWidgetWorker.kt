@@ -36,7 +36,6 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.work.CoroutineWorker
-import androidx.work.ListenableWorker.Result
 import androidx.work.WorkerParameters
 import com.sidharthify.breathe.data.RetrofitClient
 
@@ -135,7 +134,7 @@ class BreatheWidgetWorker(
                     this[PREF_O3] = concentrations["o3"] ?: -1.0
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply { this[PREF_STATUS] = "Error" }
             }

@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
 import com.sidharthify.breathe.data.LocalAnimationSettings
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -67,7 +68,7 @@ fun MorphingPill(
         if (isSelected) {
             if (animationSettings.morphingPill) {
                 progress.snapTo(0f)
-                kotlinx.coroutines.delay(120L)
+                kotlinx.coroutines.delay(120L.milliseconds)
                 progress.animateTo(
                     1f,
                     animationSpec = tween(300),

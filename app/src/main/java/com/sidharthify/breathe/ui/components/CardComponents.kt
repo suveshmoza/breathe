@@ -34,14 +34,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -64,12 +62,12 @@ import com.sidharthify.breathe.util.getAqiColor
 @Composable
 @ExperimentalMaterial3ExpressiveApi
 fun PinnedZonesButtonGroup(
+    modifier: Modifier = Modifier,
     zones: List<AqiResponse>,
     selectedZoneId: String?,
     isUsAqi: Boolean,
     isAmoled: Boolean = false,
     onZoneSelected: (AqiResponse) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     if (zones.isEmpty()) return
 

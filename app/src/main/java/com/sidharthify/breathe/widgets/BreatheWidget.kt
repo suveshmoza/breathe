@@ -29,7 +29,6 @@ package com.sidharthify.breathe.widgets
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,14 +36,14 @@ import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -52,7 +51,17 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
-import androidx.glance.layout.*
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -75,6 +84,7 @@ import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_SO2
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_STATUS
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_TOTAL_PINS
 import com.sidharthify.breathe.widgets.BreatheWidgetWorker.Companion.PREF_ZONE_NAME
+import java.util.Locale
 
 // MARK: - Palette
 
@@ -477,7 +487,7 @@ class BreatheWidget : GlanceAppWidget() {
 
 private fun formatVal(d: Double): String =
     if (d < 0) "--"
-    else if (d < 10) String.format("%.1f", d)
+    else if (d < 10) String.format(Locale.getDefault(), "%.1f", d)
     else d.toInt().toString()
 
 // MARK: - Callbacks
@@ -485,7 +495,7 @@ private fun formatVal(d: Double): String =
 class RefreshCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-            prefs.toMutablePreferences().apply { this[BreatheWidgetWorker.PREF_STATUS] = "Loading" }
+            prefs.toMutablePreferences().apply { this[PREF_STATUS] = "Loading" }
         }
         BreatheWidget().update(context, glanceId)
 
