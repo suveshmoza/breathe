@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Breathe</string>
+    <string name="trend_widget_label">24 Hour Trend</string>
+    <string name="trend_widget_description">See the last 24 hours of air quality at a glance</string>
 </resources>
