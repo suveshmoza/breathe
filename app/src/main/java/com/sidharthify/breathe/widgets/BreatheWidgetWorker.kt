@@ -32,6 +32,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -59,21 +60,30 @@ class BreatheWidgetWorker(
         val PREF_SO2 = doublePreferencesKey("so2")
         val PREF_CO = doublePreferencesKey("co")
         val PREF_O3 = doublePreferencesKey("o3")
+
+        val PREF_HISTORY_CSV = stringPreferencesKey("history_csv")
     }
 
     override suspend fun doWork(): Result {
         val manager = GlanceAppWidgetManager(context)
-        val glanceIds = manager.getGlanceIds(BreatheWidget::class.java)
 
         val appPrefs = context.getSharedPreferences("breathe_prefs", Context.MODE_PRIVATE)
         val pinnedIds = (appPrefs.getStringSet("pinned_ids", emptySet()) ?: emptySet()).sorted()
         val isUsAqi = appPrefs.getBoolean("is_us_aqi", false)
 
-        glanceIds.forEach { glanceId ->
-            try {
-                updateWidgetForId(context, glanceId, pinnedIds, isUsAqi)
-            } catch (e: Exception) {
-                e.printStackTrace()
+        val targets: List<Pair<List<GlanceId>, GlanceAppWidget>> =
+            listOf(
+                manager.getGlanceIds(BreatheWidget::class.java) to BreatheWidget(),
+                manager.getGlanceIds(BreatheTrendWidget::class.java) to BreatheTrendWidget(),
+            )
+
+        targets.forEach { (glanceIds, widget) ->
+            glanceIds.forEach { glanceId ->
+                try {
+                    updateWidgetForId(context, glanceId, widget, pinnedIds, isUsAqi)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
 
@@ -83,6 +93,7 @@ class BreatheWidgetWorker(
     private suspend fun updateWidgetForId(
         context: Context,
         glanceId: GlanceId,
+        widget: GlanceAppWidget,
         pinnedIds: List<String>,
         isUsAqi: Boolean,
     ) {
@@ -96,7 +107,7 @@ class BreatheWidgetWorker(
             updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply { this[PREF_STATUS] = "Empty" }
             }
-            BreatheWidget().update(context, glanceId)
+            widget.update(context, glanceId)
             return
         }
 
@@ -106,6 +117,13 @@ class BreatheWidgetWorker(
         try {
             val response = RetrofitClient.api.getZoneAqi(currentZoneId)
             val concentrations = response.concentrations ?: emptyMap()
+
+            val historyCsv =
+                (response.history ?: emptyList())
+                    .joinToString(",") { point ->
+                        val value = if (!isUsAqi) (point.usAqi ?: point.aqi) else point.aqi
+                        value.coerceIn(0, 500).toString()
+                    }
 
             val source = response.source ?: ""
             val providerName =
@@ -132,6 +150,8 @@ class BreatheWidgetWorker(
                     this[PREF_SO2] = concentrations["so2"] ?: -1.0
                     this[PREF_CO] = concentrations["co"] ?: -1.0
                     this[PREF_O3] = concentrations["o3"] ?: -1.0
+
+                    this[PREF_HISTORY_CSV] = historyCsv
                 }
             }
         } catch (_: Exception) {
@@ -140,6 +160,6 @@ class BreatheWidgetWorker(
             }
         }
 
-        BreatheWidget().update(context, glanceId)
+        widget.update(context, glanceId)
     }
 }
