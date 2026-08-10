@@ -37,6 +37,7 @@
 
         <receiver
             android:name=".widgets.BreatheWidgetReceiver"
+            android:label="@string/aqi_widget_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

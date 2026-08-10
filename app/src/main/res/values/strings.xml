@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Breathe</string>
+    <string name="aqi_widget_label">Air Quality</string>
+    <string name="aqi_widget_description">See live air quality for your pinned places at a glance</string>
     <string name="trend_widget_label">24 Hour Trend</string>
     <string name="trend_widget_description">See the last 24 hours of air quality at a glance</string>
 </resources>
