@@ -3,6 +3,7 @@
  * WeatherHistory.kt - Join weather-history buckets with PM samples for filters and impact cards
  *
  * Copyright (C) 2026 The Breathe Open Source Project
+ * Copyright (C) 2026 Suvesh Moza <hellosuvesh@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
