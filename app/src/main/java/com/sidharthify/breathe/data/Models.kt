@@ -78,6 +78,15 @@ data class AqiResponse(
     @SerializedName("warning") val warning: String? = null,
     @SerializedName("source") val source: String? = null,
     @SerializedName("nodes") val nodes: Map<String, NodeReading>? = null,
+    @SerializedName("weather") val weather: WeatherInfo? = null,
+)
+
+data class WeatherInfo(
+    val condition: String,
+    @SerializedName("weather_code") val weatherCode: Int?,
+    val precipitation: Double?,
+    val season: String,
+    val text: String,
 )
 
 data class HistoryPoint(

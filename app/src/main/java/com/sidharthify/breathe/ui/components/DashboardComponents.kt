@@ -57,12 +57,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.AccessTimeFilled
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmokingRooms
+import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -95,6 +102,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -114,6 +122,7 @@ import com.sidharthify.breathe.data.AqiResponse
 import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.data.NodeReading
 import com.sidharthify.breathe.data.SensorInfo
+import com.sidharthify.breathe.data.WeatherInfo
 import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.util.PollutantText
 import com.sidharthify.breathe.util.calculateChange1h
@@ -625,6 +634,18 @@ fun MainDashboardDetail(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val weather = zone.weather
+        if (weather != null && weather.text.isNotBlank()) {
+            WeatherContextCard(
+                weather = weather,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
         // Cigarette Equivalence Card
         if (cigarettes > 0.1) {
             Card(
@@ -725,6 +746,86 @@ fun MainDashboardDetail(
         }
 
         Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Composable
+fun WeatherContextCard(
+    weather: WeatherInfo,
+    modifier: Modifier = Modifier,
+) {
+    if (weather.text.isBlank()) return
+
+    val isSmog = weather.condition.equals("smog", ignoreCase = true)
+    val conditionLabel = weather.condition.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(LocalLocale.current.platformLocale) else it.toString()
+    }
+    val seasonLabel = weather.season.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(LocalLocale.current.platformLocale) else it.toString()
+    }
+    val icon = when (weather.condition.lowercase(LocalLocale.current.platformLocale)) {
+        "clear" -> Icons.Filled.WbSunny
+        "rain" -> Icons.Filled.WaterDrop
+        "thunderstorm" -> Icons.Filled.Thunderstorm
+        "snow" -> Icons.Filled.AcUnit
+        "fog" -> Icons.Filled.AccessTimeFilled
+        "smog" -> Icons.Filled.Air
+        else -> Icons.Filled.Cloud
+    }
+    val colorScheme = MaterialTheme.colorScheme
+    val iconBackground: Color
+    val iconTint: Color
+    if (isSmog) {
+        iconBackground = colorScheme.tertiaryContainer
+        iconTint = colorScheme.onTertiaryContainer
+    } else {
+        iconBackground = colorScheme.surfaceContainerHigh
+        iconTint = colorScheme.onSurface
+    }
+    val iconShape = remember { SoftBurstShape() }
+
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = colorScheme.surfaceContainer,
+                contentColor = colorScheme.onSurface,
+            ),
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .background(color = iconBackground, shape = iconShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = conditionLabel,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    "$conditionLabel · $seasonLabel",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface,
+                )
+                Text(
+                    weather.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
