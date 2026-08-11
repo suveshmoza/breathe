@@ -52,6 +52,13 @@ interface BreatheApi {
         @Path("metrics") metrics: String,
         @Query("format") format: String = "json",
     ): HistoricalDataResponse
+
+    @GET("/weather-history/{zone_id}/{time_range}/{interval}")
+    suspend fun getWeatherHistory(
+        @Path("zone_id") zoneId: String,
+        @Path("time_range") timeRange: String,
+        @Path("interval") interval: String,
+    ): WeatherHistory
 }
 
 object RetrofitClient {

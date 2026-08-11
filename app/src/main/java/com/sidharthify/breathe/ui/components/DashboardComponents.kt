@@ -68,14 +68,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +98,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -114,6 +118,7 @@ import com.sidharthify.breathe.data.AqiResponse
 import com.sidharthify.breathe.data.LocalAnimationSettings
 import com.sidharthify.breathe.data.NodeReading
 import com.sidharthify.breathe.data.SensorInfo
+import com.sidharthify.breathe.data.WeatherInfo
 import com.sidharthify.breathe.expressiveClickable
 import com.sidharthify.breathe.util.PollutantText
 import com.sidharthify.breathe.util.calculateChange1h
@@ -122,6 +127,7 @@ import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.getAqiCategory
 import com.sidharthify.breathe.util.getAqiColor
 import com.sidharthify.breathe.util.getTimeAgo
+import com.sidharthify.breathe.util.weatherConditionIconRes
 import kotlin.math.ceil
 
 class SoftBurstShape : Shape {
@@ -625,6 +631,18 @@ fun MainDashboardDetail(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val weather = zone.weather
+        if (weather != null && weather.text.isNotBlank()) {
+            WeatherContextCard(
+                weather = weather,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
         // Cigarette Equivalence Card
         if (cigarettes > 0.1) {
             Card(
@@ -725,6 +743,67 @@ fun MainDashboardDetail(
         }
 
         Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun WeatherContextCard(
+    weather: WeatherInfo,
+    modifier: Modifier = Modifier,
+) {
+    val locale = LocalLocale.current.platformLocale
+    val conditionLabel = weather.condition.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(locale) else it.toString()
+    }
+    val seasonLabel = weather.season.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(locale) else it.toString()
+    }
+    val colorScheme = MaterialTheme.colorScheme
+    val iconBackground = colorScheme.secondaryContainer
+    val iconTint = colorScheme.onSecondaryContainer
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = colorScheme.surfaceContainer,
+                contentColor = colorScheme.onSurface,
+            ),
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .background(color = iconBackground, shape = MaterialShapes.Circle.toShape()),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(weatherConditionIconRes(weather.condition)),
+                    contentDescription = conditionLabel,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    "$conditionLabel · $seasonLabel",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface,
+                )
+                Text(
+                    weather.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

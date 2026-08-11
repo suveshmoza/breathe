@@ -141,6 +141,7 @@ fun HomeScreen(
                 onTogglePm25 = { viewModel.toggleHistoryPm25() },
                 onTogglePm10 = { viewModel.toggleHistoryPm10() },
                 onDownloadCSV = { viewModel.downloadHistoryCSV(context) },
+                onWeatherFilterSelected = { viewModel.setWeatherFilter(it) },
             )
         } else {
             PullToRefreshBox(

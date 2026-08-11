@@ -24,6 +24,8 @@
  * SOFTWARE.
  */
 
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package com.sidharthify.breathe.ui.components
 
 import android.graphics.Paint
@@ -31,11 +33,16 @@ import android.graphics.Typeface
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
@@ -43,6 +50,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -61,20 +69,30 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sidharthify.breathe.data.HistoricalDataPoint
 import com.sidharthify.breathe.data.HistoricalStats
 import com.sidharthify.breathe.data.HistoryState
+import com.sidharthify.breathe.util.WEATHER_FILTER_LABELS
+import com.sidharthify.breathe.util.WeatherPm25Group
 import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.calculateUsAqiPm10
+import com.sidharthify.breathe.util.filterHistoryByWeather
 import com.sidharthify.breathe.util.getAqiColor
+import com.sidharthify.breathe.util.weatherConditionIconRes
+import com.sidharthify.breathe.util.weatherImpactCards
+import com.sidharthify.breathe.util.weatherPm25Groups
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+
+private val HistoryButtonHeight = 36.dp
+private val HistoryButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
 
 @Composable
 fun ExtendedHistoryScreen(
@@ -91,6 +109,7 @@ fun ExtendedHistoryScreen(
     onTogglePm25: () -> Unit,
     onTogglePm10: () -> Unit,
     onDownloadCSV: () -> Unit,
+    onWeatherFilterSelected: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -103,14 +122,21 @@ fun ExtendedHistoryScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            FilledTonalIconButton(
+                onClick = onBack,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(18.dp),
+                )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 "$zoneName History",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
 
@@ -140,6 +166,40 @@ fun ExtendedHistoryScreen(
             onApplyCustom = onApplyCustom,
         )
 
+        val weatherHistory = historyState.weatherHistory
+        val weatherGroups =
+            remember(historyState.data, weatherHistory) {
+                weatherPm25Groups(historyState.data, weatherHistory)
+            }
+        val filteredData =
+            remember(historyState.data, weatherHistory, historyState.weatherFilter) {
+                filterHistoryByWeather(
+                    historyState.data,
+                    weatherHistory,
+                    historyState.weatherFilter,
+                )
+            }
+        val impactCards =
+            remember(historyState.data, weatherHistory) {
+                weatherImpactCards(historyState.data, weatherHistory)
+            }
+
+        if (!historyState.isLoading &&
+            weatherHistory != null &&
+            weatherHistory.points.isNotEmpty()
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            WeatherFilterChips(
+                selectedFilter = historyState.weatherFilter,
+                presentConditions = weatherGroups.filterValues { it.second > 0 }.keys,
+                onFilterSelected = onWeatherFilterSelected,
+            )
+            if (impactCards.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                WeatherImpactPanel(cards = impactCards)
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Stats panel
@@ -156,32 +216,50 @@ fun ExtendedHistoryScreen(
                     .height(250.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                CircularWavyProgressIndicator()
             }
         } else if (historyState.error != null) {
-            Text(
-                historyState.error,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(16.dp),
-            )
-        } else if (historyState.data.isNotEmpty()) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    historyState.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+        } else if (filteredData.isNotEmpty()) {
             ExtendedHistoryPager(
-                data = historyState.data,
+                data = filteredData,
                 showPm25 = historyState.showPm25,
                 showPm10 = historyState.showPm10,
+            )
+        } else if (historyState.data.isNotEmpty()) {
+            Text(
+                "No samples for this weather",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp),
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Download CSV button
-        OutlinedButton(
+        Button(
             onClick = onDownloadCSV,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(HistoryButtonHeight),
+            contentPadding = HistoryButtonPadding,
         ) {
-            Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Filled.Download,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Download CSV")
+            Text("Download CSV", style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(100.dp))
@@ -201,53 +279,74 @@ fun HistoryControlsBar(
 ) {
     var sensorExpanded by remember { mutableStateOf(false) }
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Sensor dropdown
         if (nodeKeys.isNotEmpty()) {
             ExposedDropdownMenuBox(
                 expanded = sensorExpanded,
                 onExpandedChange = { sensorExpanded = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedTextField(
                     value = if (selectedSensor == "zone") "Zone Average" else selectedSensor,
                     onValueChange = {},
                     readOnly = true,
                     singleLine = true,
-                    textStyle = TextStyle(fontSize = 13.sp),
+                    shape = MaterialTheme.shapes.medium,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sensorExpanded) },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).height(48.dp),
+                    modifier =
+                        Modifier
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
                 )
                 ExposedDropdownMenu(
                     expanded = sensorExpanded,
                     onDismissRequest = { sensorExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Zone Average", fontWeight = if (selectedSensor == "zone") FontWeight.Bold else FontWeight.Normal) },
-                        onClick = { onSensorSelected("zone"); sensorExpanded = false },
+                        text = { Text("Zone Average") },
+                        onClick = {
+                            onSensorSelected("zone")
+                            sensorExpanded = false
+                        },
                     )
                     nodeKeys.forEach { key ->
                         DropdownMenuItem(
-                            text = { Text(key, fontWeight = if (selectedSensor == key) FontWeight.Bold else FontWeight.Normal) },
-                            onClick = { onSensorSelected(key); sensorExpanded = false },
+                            text = { Text(key) },
+                            onClick = {
+                                onSensorSelected(key)
+                                sensorExpanded = false
+                            },
                         )
                     }
                 }
             }
         }
 
-        // PM checkboxes
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = showPm25, onCheckedChange = { onTogglePm25() })
-            Text("PM2.5", style = MaterialTheme.typography.labelMedium)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = showPm10, onCheckedChange = { onTogglePm10() })
-            Text("PM10", style = MaterialTheme.typography.labelMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            ToggleButton(
+                checked = showPm25,
+                onCheckedChange = { checked -> if (checked != showPm25) onTogglePm25() },
+                modifier = Modifier.weight(1f).height(HistoryButtonHeight),
+                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                contentPadding = HistoryButtonPadding,
+            ) {
+                Text("PM2.5", style = MaterialTheme.typography.labelMedium, maxLines = 1)
+            }
+            ToggleButton(
+                checked = showPm10,
+                onCheckedChange = { checked -> if (checked != showPm10) onTogglePm10() },
+                modifier = Modifier.weight(1f).height(HistoryButtonHeight),
+                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                contentPadding = HistoryButtonPadding,
+            ) {
+                Text("PM10", style = MaterialTheme.typography.labelMedium, maxLines = 1)
+            }
         }
     }
 }
@@ -264,90 +363,76 @@ fun HistoryRangeSelector(
     onCustomIntervalChanged: (String) -> Unit,
     onApplyCustom: () -> Unit,
 ) {
-    val presets = listOf("1w" to "1 Week", "1mo" to "1 Month", "6mo" to "6 Months")
+    val options = listOf("1w" to "1W", "1mo" to "1M", "6mo" to "6M", "custom" to "Custom")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
-        presets.forEach { (key, label) ->
-            val isSelected = selectedRange == key && !showCustomInputs
-            if (isSelected) {
-                FilledTonalButton(
-                    onClick = { onRangeSelected(key) },
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        options.forEachIndexed { index, (key, label) ->
+            val checked =
+                if (key == "custom") {
+                    showCustomInputs
+                } else {
+                    selectedRange == key && !showCustomInputs
                 }
-            } else {
-                OutlinedButton(
-                    onClick = { onRangeSelected(key) },
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                }
-            }
-        }
-
-        if (showCustomInputs) {
-            FilledTonalButton(
-                onClick = onToggleCustom,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ToggleButton(
+                checked = checked,
+                onCheckedChange = { isChecked ->
+                    if (!isChecked) return@ToggleButton
+                    if (key == "custom") {
+                        if (!showCustomInputs) onToggleCustom()
+                    } else if (selectedRange != key || showCustomInputs) {
+                        onRangeSelected(key)
+                    }
+                },
+                modifier = Modifier.weight(1f).height(HistoryButtonHeight),
+                shapes = connectedToggleShapes(index, options.size),
+                contentPadding = HistoryButtonPadding,
             ) {
-                Text("Custom", style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            }
-        } else {
-            OutlinedButton(
-                onClick = onToggleCustom,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            ) {
-                Text("Custom", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
             }
         }
     }
 
-    AnimatedVisibility(visible = showCustomInputs) {
+    AnimatedVisibility(
+        visible = showCustomInputs,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = MaterialTheme.shapes.medium,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
+                CompactHistoryTextField(
                     value = customRange,
                     onValueChange = onCustomRangeChanged,
-                    label = { Text("Range", style = MaterialTheme.typography.labelSmall) },
-                    singleLine = true,
-                    textStyle = TextStyle(fontSize = 13.sp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
+                    placeholder = "Range",
+                    modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                CompactHistoryTextField(
                     value = customInterval,
                     onValueChange = onCustomIntervalChanged,
-                    label = { Text("Interval", style = MaterialTheme.typography.labelSmall) },
-                    singleLine = true,
-                    textStyle = TextStyle(fontSize = 13.sp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
+                    placeholder = "Interval",
+                    modifier = Modifier.weight(1f),
                 )
                 FilledTonalButton(
                     onClick = onApplyCustom,
-                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier.weight(1f).height(HistoryButtonHeight),
+                    shape = MaterialTheme.shapes.small,
+                    contentPadding = HistoryButtonPadding,
                 ) {
-                    Text("Apply", style = MaterialTheme.typography.labelSmall)
+                    Text("Apply", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -355,10 +440,142 @@ fun HistoryRangeSelector(
 }
 
 @Composable
+fun WeatherFilterChips(
+    selectedFilter: String,
+    presentConditions: Set<String>,
+    onFilterSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options =
+        buildList {
+            add("all" to "All")
+            WEATHER_FILTER_LABELS.forEach { (condition, label) ->
+                if (condition in presentConditions) add(condition to label)
+            }
+        }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            "Filter by weather during that time",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            options.forEachIndexed { index, (condition, label) ->
+                ToggleButton(
+                    checked = selectedFilter == condition,
+                    onCheckedChange = { isChecked ->
+                        if (isChecked && selectedFilter != condition) {
+                            onFilterSelected(condition)
+                        }
+                    },
+                    modifier = Modifier.weight(1f).height(HistoryButtonHeight),
+                    shapes = connectedToggleShapes(index, options.size),
+                    contentPadding = HistoryButtonPadding,
+                ) {
+                    Icon(
+                        painter = painterResource(weatherConditionIconRes(condition)),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeatherImpactPanel(
+    cards: List<WeatherPm25Group>,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Surface(
+        color = colorScheme.surfaceContainer,
+        contentColor = colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "Average PM2.5 by weather condition",
+                style = MaterialTheme.typography.labelSmall,
+                color = colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            cards.chunked(2).forEachIndexed { index, rowCards ->
+                if (index > 0) Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    rowCards.forEach { card ->
+                        WeatherImpactStat(
+                            card = card,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (rowCards.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherImpactStat(
+    card: WeatherPm25Group,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val diffColor = if (card.diffPct <= 0) colorScheme.primary else colorScheme.tertiary
+    val diffText =
+        when {
+            card.diffPct == 0 -> "same as average"
+            card.diffPct > 0 -> "+${card.diffPct}% vs average"
+            else -> "${card.diffPct}% vs average"
+        }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier,
+    ) {
+        Text(
+            "${card.label} (${card.hours}h of data)",
+            style = MaterialTheme.typography.labelSmall,
+            color = colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            "${"%.1f".format(card.avg)} µg/m³",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.onSurface,
+        )
+        Text(
+            diffText,
+            style = MaterialTheme.typography.labelSmall,
+            color = diffColor,
+        )
+    }
+}
+
+@Composable
 fun HistoryStatsPanel(stats: HistoricalStats) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -382,6 +599,66 @@ fun HistoryStatsPanel(stats: HistoricalStats) {
         }
     }
 }
+
+@Composable
+private fun CompactHistoryTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val colors = OutlinedTextFieldDefaults.colors()
+    val textStyle =
+        MaterialTheme.typography.labelMedium.merge(
+            TextStyle(color = MaterialTheme.colorScheme.onSurface),
+        )
+
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth().height(HistoryButtonHeight),
+        singleLine = true,
+        textStyle = textStyle,
+        interactionSource = interactionSource,
+        decorationBox = { innerTextField ->
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = value,
+                innerTextField = innerTextField,
+                enabled = true,
+                singleLine = true,
+                visualTransformation = VisualTransformation.None,
+                interactionSource = interactionSource,
+                placeholder = {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                colors = colors,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                container = {
+                    OutlinedTextFieldDefaults.Container(
+                        enabled = true,
+                        isError = false,
+                        interactionSource = interactionSource,
+                        colors = colors,
+                        shape = MaterialTheme.shapes.small,
+                    )
+                },
+            )
+        },
+    )
+}
+
+@Composable
+private fun connectedToggleShapes(index: Int, count: Int) =
+    when (index) {
+        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+        count - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+    }
 
 @Composable
 private fun StatItem(label: String, value: Double?, modifier: Modifier = Modifier) {
@@ -451,7 +728,7 @@ fun ExtendedHistoryChart(
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -960,7 +1237,7 @@ fun ExtendedDotHistoryChart(
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

@@ -41,10 +41,13 @@ import com.sidharthify.breathe.data.RetrofitClient
 import com.sidharthify.breathe.data.SensorInfo
 import com.sidharthify.breathe.data.Zone
 import com.sidharthify.breathe.widgets.forceWidgetUpdate
+import com.sidharthify.breathe.util.weatherPm25Groups
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +72,7 @@ class BreatheViewModel : ViewModel() {
     val historyState = _historyState.asStateFlow()
 
     private var _historyZoneId: String? = null
+    private var historyFetchJob: Job? = null
 
     private val gson = Gson()
     private var pollingJob: Job? = null
@@ -322,6 +326,10 @@ class BreatheViewModel : ViewModel() {
         fetchHistoricalData()
     }
 
+    fun setWeatherFilter(condition: String) {
+        _historyState.update { it.copy(weatherFilter = condition) }
+    }
+
     private fun fetchHistoricalData() {
         val zoneId = _historyZoneId ?: return
         val state = _historyState.value
@@ -347,21 +355,52 @@ class BreatheViewModel : ViewModel() {
 
         _historyState.update { it.copy(isLoading = true, error = null) }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        historyFetchJob?.cancel()
+        historyFetchJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                val response = RetrofitClient.api.getHistoricalData(
-                    location = location,
-                    timeRange = state.selectedRange,
-                    interval = interval,
-                    metrics = metrics,
-                )
-                _historyState.update {
-                    it.copy(
-                        isLoading = false,
-                        data = response.data,
-                        stats = response.stats,
-                    )
+                coroutineScope {
+                    val historyDeferred =
+                        async {
+                            RetrofitClient.api.getHistoricalData(
+                                location = location,
+                                timeRange = state.selectedRange,
+                                interval = interval,
+                                metrics = metrics,
+                            )
+                        }
+                    val weatherDeferred =
+                        async {
+                            runCatching {
+                                RetrofitClient.api.getWeatherHistory(
+                                    zoneId = zoneId,
+                                    timeRange = state.selectedRange,
+                                    interval = interval,
+                                )
+                            }.getOrNull()
+                        }
+                    val response = historyDeferred.await()
+                    val weather = weatherDeferred.await()
+                    val groups = weatherPm25Groups(response.data, weather)
+                    val nextFilter =
+                        if (state.weatherFilter != "all" &&
+                            (groups[state.weatherFilter]?.second ?: 0) == 0
+                        ) {
+                            "all"
+                        } else {
+                            state.weatherFilter
+                        }
+                    _historyState.update {
+                        it.copy(
+                            isLoading = false,
+                            data = response.data,
+                            stats = response.stats,
+                            weatherHistory = weather,
+                            weatherFilter = nextFilter,
+                        )
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _historyState.update {
                     it.copy(isLoading = false, error = "Failed to load: ${e.localizedMessage}")
