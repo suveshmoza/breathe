@@ -57,32 +57,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.AccessTimeFilled
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmokingRooms
-import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -131,6 +127,7 @@ import com.sidharthify.breathe.util.calculateUsAqi
 import com.sidharthify.breathe.util.getAqiCategory
 import com.sidharthify.breathe.util.getAqiColor
 import com.sidharthify.breathe.util.getTimeAgo
+import com.sidharthify.breathe.util.weatherConditionIconRes
 import kotlin.math.ceil
 
 class SoftBurstShape : Shape {
@@ -749,41 +746,22 @@ fun MainDashboardDetail(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WeatherContextCard(
     weather: WeatherInfo,
     modifier: Modifier = Modifier,
 ) {
-    if (weather.text.isBlank()) return
-
-    val isSmog = weather.condition.equals("smog", ignoreCase = true)
+    val locale = LocalLocale.current.platformLocale
     val conditionLabel = weather.condition.replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase(LocalLocale.current.platformLocale) else it.toString()
+        if (it.isLowerCase()) it.titlecase(locale) else it.toString()
     }
     val seasonLabel = weather.season.replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase(LocalLocale.current.platformLocale) else it.toString()
-    }
-    val icon = when (weather.condition.lowercase(LocalLocale.current.platformLocale)) {
-        "clear" -> Icons.Filled.WbSunny
-        "rain" -> Icons.Filled.WaterDrop
-        "thunderstorm" -> Icons.Filled.Thunderstorm
-        "snow" -> Icons.Filled.AcUnit
-        "fog" -> Icons.Filled.AccessTimeFilled
-        "smog" -> Icons.Filled.Air
-        else -> Icons.Filled.Cloud
+        if (it.isLowerCase()) it.titlecase(locale) else it.toString()
     }
     val colorScheme = MaterialTheme.colorScheme
-    val iconBackground: Color
-    val iconTint: Color
-    if (isSmog) {
-        iconBackground = colorScheme.tertiaryContainer
-        iconTint = colorScheme.onTertiaryContainer
-    } else {
-        iconBackground = colorScheme.surfaceContainerHigh
-        iconTint = colorScheme.onSurface
-    }
-    val iconShape = remember { SoftBurstShape() }
-
+    val iconBackground = colorScheme.secondaryContainer
+    val iconTint = colorScheme.onSecondaryContainer
     Card(
         colors =
             CardDefaults.cardColors(
@@ -801,11 +779,11 @@ fun WeatherContextCard(
                 modifier =
                     Modifier
                         .size(56.dp)
-                        .background(color = iconBackground, shape = iconShape),
+                        .background(color = iconBackground, shape = MaterialShapes.Circle.toShape()),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = icon,
+                    painter = painterResource(weatherConditionIconRes(weather.condition)),
                     contentDescription = conditionLabel,
                     tint = iconTint,
                     modifier = Modifier.size(24.dp),

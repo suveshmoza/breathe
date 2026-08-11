@@ -82,11 +82,23 @@ data class AqiResponse(
 )
 
 data class WeatherInfo(
-    val condition: String,
-    @SerializedName("weather_code") val weatherCode: Int?,
-    val precipitation: Double?,
-    val season: String,
-    val text: String,
+    val condition: String = "",
+    @SerializedName("weather_code") val weatherCode: Int? = null,
+    val precipitation: Double? = null,
+    val season: String = "",
+    val text: String = "",
+)
+
+data class WeatherHistoryPoint(
+    val ts: Long,
+    val condition: String = "",
+    val precipitation: Double? = null,
+)
+
+data class WeatherHistory(
+    val interval: Long = 3600L,
+    val points: List<WeatherHistoryPoint> = emptyList(),
+    @SerializedName("zone_id") val zoneId: String? = null,
 )
 
 data class HistoryPoint(
@@ -146,6 +158,8 @@ data class HistoryState(
     val customInterval: String = "1h",
     val showCustomInputs: Boolean = false,
     val error: String? = null,
+    val weatherHistory: WeatherHistory? = null,
+    val weatherFilter: String = "all",
 )
 
 data class AppState(
