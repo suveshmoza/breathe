@@ -27,9 +27,9 @@
 package com.sidharthify.breathe.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
 import com.sidharthify.breathe.data.LocalAnimationSettings
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -56,6 +55,7 @@ fun MorphingPill(
     modifier: Modifier = Modifier,
 ) {
     val animationSettings = LocalAnimationSettings.current
+    val morphSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     
     val morph =
         remember(from, to) {
@@ -64,14 +64,13 @@ fun MorphingPill(
 
     val progress = remember { Animatable(0f) }
 
-    LaunchedEffect(isSelected, animationSettings.morphingPill) {
+    LaunchedEffect(isSelected, animationSettings.morphingPill, morphSpec) {
         if (isSelected) {
             if (animationSettings.morphingPill) {
                 progress.snapTo(0f)
-                kotlinx.coroutines.delay(120L.milliseconds)
                 progress.animateTo(
                     1f,
-                    animationSpec = tween(300),
+                    animationSpec = morphSpec,
                 )
             } else {
                 progress.snapTo(1f)
@@ -88,6 +87,8 @@ fun MorphingPill(
         modifier =
             modifier
                 .drawWithContent {
+                    if (!isSelected || color.alpha == 0f) return@drawWithContent
+
                     val p =
                         morph.toPath(
                             progress = progress.value,
