@@ -37,23 +37,24 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -62,9 +63,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
@@ -83,13 +86,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -212,6 +217,7 @@ fun BreatheApp(
     val isUsAqi by viewModel.isUsAqi.collectAsState()
 
     var currentScreen by remember { mutableStateOf(AppScreen.Home) }
+    val motionScheme = MaterialTheme.motionScheme
 
     // navigate to Home first, then exit
     BackHandler(enabled = currentScreen != AppScreen.Home) {
@@ -234,7 +240,7 @@ fun BreatheApp(
                     label = "ScreenTransition",
                     transitionSpec = {
                         if (!animationSettings.screenTransitions) {
-                            fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))
+                            EnterTransition.None togetherWith ExitTransition.None
                         } else {
                             val direction =
                                 if (targetState.ordinal > initialState.ordinal) {
@@ -242,17 +248,15 @@ fun BreatheApp(
                                 } else {
                                     AnimatedContentTransitionScope.SlideDirection.Right
                                 }
+                            val spatial = motionScheme.defaultSpatialSpec<IntOffset>()
 
-                            (
-                                slideIntoContainer(
-                                    towards = direction,
-                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
-                                ) + fadeIn(animationSpec = tween(400))
-                            ).togetherWith(
-                                slideOutOfContainer(
-                                    towards = direction,
-                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f),
-                                ) + fadeOut(animationSpec = tween(400)),
+                            // M3 lateral: peer screens slide in unison, no fade.
+                            slideIntoContainer(
+                                towards = direction,
+                                animationSpec = spatial,
+                            ) togetherWith slideOutOfContainer(
+                                towards = direction,
+                                animationSpec = spatial,
                             )
                         }
                     },
@@ -261,150 +265,147 @@ fun BreatheApp(
                         modifier =
                             Modifier
                                 .fillMaxSize()
-                                .padding(bottom = 0.dp)
                                 .consumeWindowInsets(WindowInsets.navigationBars),
                     ) {
-                        Box(modifier = Modifier.padding(bottom = 100.dp)) {
-                            when (screen) {
-                                AppScreen.Home -> {
-                                    HomeScreen(
-                                        isLoading = uiState.isLoading,
-                                        isDarkTheme = isDarkTheme,
-                                        isAmoled = isAmoled,
-                                        error = uiState.error,
-                                        pinnedZones = uiState.pinnedZones,
-                                        zones = uiState.zones,
-                                        sensorInfos = uiState.sensorInfos,
-                                        onGoToExplore = { currentScreen = AppScreen.Explore },
-                                        onRetry = { viewModel.refreshData(context) },
-                                    )
-                                }
+                        when (screen) {
+                            AppScreen.Home -> {
+                                HomeScreen(
+                                    isLoading = uiState.isLoading,
+                                    isDarkTheme = isDarkTheme,
+                                    isAmoled = isAmoled,
+                                    error = uiState.error,
+                                    pinnedZones = uiState.pinnedZones,
+                                    zones = uiState.zones,
+                                    sensorInfos = uiState.sensorInfos,
+                                    onGoToExplore = { currentScreen = AppScreen.Explore },
+                                    onRetry = { viewModel.refreshData(context) },
+                                )
+                            }
 
-                                AppScreen.Map -> {
-                                    MapScreen(
-                                        zones = uiState.zones,
-                                        allAqiData = uiState.allAqiData,
-                                        pinnedIds = uiState.pinnedIds,
-                                        isDarkTheme = isDarkTheme,
-                                        isUsAqi = isUsAqi,
-                                        sensorInfos = uiState.sensorInfos,
-                                        onPinToggle = { id -> viewModel.togglePin(context, id) },
-                                    )
-                                }
+                            AppScreen.Map -> {
+                                MapScreen(
+                                    zones = uiState.zones,
+                                    allAqiData = uiState.allAqiData,
+                                    pinnedIds = uiState.pinnedIds,
+                                    isDarkTheme = isDarkTheme,
+                                    isUsAqi = isUsAqi,
+                                    sensorInfos = uiState.sensorInfos,
+                                    onPinToggle = { id -> viewModel.togglePin(context, id) },
+                                )
+                            }
 
-                                AppScreen.Explore -> {
-                                    ExploreScreen(
-                                        isLoading = uiState.isLoading,
-                                        isDarkTheme = isDarkTheme,
-                                        error = uiState.error,
-                                        zones = uiState.zones,
-                                        pinnedIds = uiState.pinnedIds,
-                                        query = searchQuery,
-                                        onSearchChange = viewModel::onSearchQueryChanged,
-                                        onPinToggle = { id -> viewModel.togglePin(context, id) },
-                                        onRetry = { viewModel.refreshData(context) },
-                                    )
-                                }
+                            AppScreen.Explore -> {
+                                ExploreScreen(
+                                    isLoading = uiState.isLoading,
+                                    isDarkTheme = isDarkTheme,
+                                    error = uiState.error,
+                                    zones = uiState.zones,
+                                    pinnedIds = uiState.pinnedIds,
+                                    query = searchQuery,
+                                    onSearchChange = viewModel::onSearchQueryChanged,
+                                    onPinToggle = { id -> viewModel.togglePin(context, id) },
+                                    onRetry = { viewModel.refreshData(context) },
+                                )
+                            }
 
-                                AppScreen.Settings -> {
-                                    SettingsScreen(
-                                        isDarkTheme = isDarkTheme,
-                                        isAmoled = isAmoled,
-                                        onThemeToggle = onThemeToggle,
-                                        onAmoledToggle = onAmoledToggle,
-                                        animationSettings = animationSettings,
-                                        onAnimationSettingsChange = onAnimationSettingsChange,
-                                        viewModel = viewModel,
-                                    )
-                                }
+                            AppScreen.Settings -> {
+                                SettingsScreen(
+                                    isDarkTheme = isDarkTheme,
+                                    isAmoled = isAmoled,
+                                    onThemeToggle = onThemeToggle,
+                                    onAmoledToggle = onAmoledToggle,
+                                    animationSettings = animationSettings,
+                                    onAnimationSettingsChange = onAnimationSettingsChange,
+                                    viewModel = viewModel,
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // Navigation Pill
-            Surface(
+            Box(
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                1f to MaterialTheme.colorScheme.surface,
+                            ),
+                        ),
+            )
+
+            HorizontalFloatingToolbar(
+                expanded = true,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(bottom = 24.dp, start = 48.dp, end = 48.dp)
                         .height(72.dp)
-                        .shadow(
-                            elevation = 12.dp,
-                            shape = RoundedCornerShape(100),
-                            ambientColor = Color.Black.copy(alpha = 0.4f),
-                            spotColor = Color.Black.copy(alpha = 0.6f),
-                        ),
+                        .zIndex(1f),
                 shape = RoundedCornerShape(100),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 1.dp,
+                contentPadding = PaddingValues(8.dp),
+                expandedShadowElevation = 12.dp,
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 8.dp)
-                            .fillMaxHeight(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                ) {
-                    AppScreen.entries.forEach { screen ->
-                        val isSelected = currentScreen == screen
-                        val targetShape = screen.shape
-                        val iconColor by animateColorAsState(
-                            targetValue =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                        .copy(
-                                            alpha = 0.5f,
-                                        )
-                                },
-                            animationSpec =
-                                if (animationSettings.colorTransitions) {
-                                    tween(durationMillis = 300)
-                                } else {
-                                    tween(durationMillis = 0)
-                                },
-                            label = "IconColor",
-                        )
-                        val pillColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                            animationSpec =
-                                if (animationSettings.colorTransitions) {
-                                    tween(durationMillis = 300)
-                                } else {
-                                    tween(durationMillis = 0)
-                                },
-                            label = "PillColor",
-                        )
+                AppScreen.entries.forEach { screen ->
+                    val isSelected = currentScreen == screen
+                    val iconColor by animateColorAsState(
+                        targetValue =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            },
+                        animationSpec =
+                            if (isSelected && animationSettings.colorTransitions) {
+                                tween(durationMillis = 150)
+                            } else {
+                                tween(durationMillis = 0)
+                            },
+                        label = "IconColor",
+                    )
+                    val pillColor by animateColorAsState(
+                        targetValue =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            } else {
+                                Color.Transparent
+                            },
+                        animationSpec =
+                            if (isSelected && animationSettings.colorTransitions) {
+                                tween(durationMillis = 150)
+                            } else {
+                                tween(durationMillis = 0)
+                            },
+                        label = "PillColor",
+                    )
 
-                        Box(
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .padding(vertical = 8.dp)
-                                    .expressiveClickable { currentScreen = screen },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            MorphingPill(
-                                isSelected = isSelected,
-                                from = MaterialShapes.Circle,
-                                to = targetShape,
-                                color = pillColor,
-                                modifier = Modifier.size(50.dp),
-                            )
-
-                            Icon(
-                                if (isSelected) screen.iconFilled else screen.iconOutlined,
-                                contentDescription = screen.label,
-                                tint = iconColor,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .expressiveClickable { currentScreen = screen },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MorphingPill(
+                            isSelected = isSelected,
+                            from = MaterialShapes.Circle,
+                            to = screen.shape,
+                            color = pillColor,
+                            modifier = Modifier.size(50.dp),
+                        )
+                        Icon(
+                            if (isSelected) screen.iconFilled else screen.iconOutlined,
+                            contentDescription = screen.label,
+                            tint = iconColor,
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 }
             }
@@ -446,6 +447,7 @@ fun Modifier.expressiveClickable(onClick: () -> Unit): Modifier =
             }
     }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BreatheTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -505,6 +507,7 @@ fun BreatheTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         shapes = expressiveShapes,
+        motionScheme = MotionScheme.expressive(),
         content = content,
     )
 }
